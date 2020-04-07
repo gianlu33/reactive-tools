@@ -8,15 +8,16 @@ from elftools.elf import elffile
 
 import sancus.crypto
 
-from .nodes import SancusNode
-from . import tools
+from .base import Module
+from ..nodes import SancusNode
+from .. import tools
 
 
 class Error(Exception):
     pass
 
 
-class Module:
+class SancusModule(Module):
     def __init__(self, name, files, cflags, ldflags, node,
                  binary=None, id=None, symtab=None, key=None):
 
@@ -114,8 +115,6 @@ class Module:
 
         return await self.__deploy_fut
 
-
-class SancusModule(Module):
     async def _calculate_key(self):
         linked_binary = await self.__link()
 
@@ -192,4 +191,3 @@ def _get_verbosity():
         return _Verbosity.Verbose
     else:
         return _Verbosity.Normal
-

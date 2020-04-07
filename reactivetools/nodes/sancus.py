@@ -8,16 +8,19 @@ from enum import IntEnum
 
 import sancus.crypto
 
-from . import tools
+from .base import Node
+from .. import tools
 
 
 class Error(Exception):
     pass
 
-
-class Node:
-    def __init__(self, name, ip_address, deploy_port=2000, reactive_port=2001):
+class SancusNode(Node):
+    def __init__(self, name, vendor_id, vendor_key,
+                 ip_address, deploy_port=2000, reactive_port=2001):
         self.name = name
+        self.vendor_id = vendor_id
+        self.vendor_key = vendor_key
         self.ip_address = ip_address
         self.deploy_port = deploy_port
         self.reactive_port = reactive_port
@@ -183,15 +186,6 @@ class Node:
     @staticmethod
     def __unpack_int(i):
         return struct.unpack('!H', i)[0]
-
-
-
-class SancusNode(Node):
-    def __init__(self, name, vendor_id, vendor_key,
-                 ip_address, deploy_port=2000, reactive_port=2001):
-        super().__init__(name, ip_address, deploy_port, reactive_port)
-        self.vendor_id = vendor_id
-        self.vendor_key = vendor_key
 
 
 class _ReactiveCommand(IntEnum):

@@ -10,8 +10,8 @@ import types
 
 import sancus.config
 
-from .nodes import SancusNode
-from .modules import SancusModule
+from .nodes import SancusNode, SGXNode, NoSGXNode
+from .modules import SancusModule, SGXModule, NoSGXModule
 from .connection import Connection
 
 
@@ -94,6 +94,13 @@ def _load_sancus_node(node_dict):
                       ip_address, deploy_port, reactive_port)
 
 
+def _load_sgx_node(node_dict):
+    pass
+
+def _load_nosgx_node(node_dict):
+    pass
+
+
 def _load_module(mod_dict, config):
     return _module_load_funcs[mod_dict['type']](mod_dict, config)
 
@@ -111,6 +118,13 @@ def _load_sancus_module(mod_dict, config):
     key = mod_dict.get('key')
     return SancusModule(name, files, cflags, ldflags, node,
                         binary, id, symtab, key)
+
+
+def _load_sgx_module(mod_dict, config):
+    pass
+
+def _load_nosgx_module(mod_dict, config):
+    pass
 
 
 def _load_connection(conn_dict, config):
@@ -151,12 +165,16 @@ def _load_module_file(file_name, config):
 
 
 _node_load_funcs = {
-    'sancus': _load_sancus_node
+    'sancus': _load_sancus_node,
+    'sgx': _load_sgx_node,
+    'nosgx': _load_nosgx_node
 }
 
 
 _module_load_funcs = {
-    'sancus': _load_sancus_module
+    'sancus': _load_sancus_module,
+    'sgx': _load_sgx_module,
+    'nosgx': _load_nosgx_module
 }
 
 
@@ -209,6 +227,34 @@ def _(module):
     }
 
 
+@_dump.register(SGXNode)
+def _(node):
+    return {
+        "type": "sgx",
+    }
+
+
+@_dump.register(SGXModule)
+def _(module):
+    return {
+        "type": "sgx",
+    }
+
+
+@_dump.register(NoSGXNode)
+def _(node):
+    return {
+        "type": "sgx",
+    }
+
+
+@_dump.register(NoSGXModule)
+def _(module):
+    return {
+        "type": "sgx",
+    }
+
+
 @_dump.register(Connection)
 def _(conn):
     return {
@@ -240,4 +286,3 @@ def _(path):
 @_dump.register(types.CoroutineType)
 def _(coro):
     return _dump(asyncio.get_event_loop().run_until_complete(coro))
-
