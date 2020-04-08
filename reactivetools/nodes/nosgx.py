@@ -1,4 +1,9 @@
-from .base import Node, Type
+import asyncio
+import collections
+import logging
 
-class NoSGXNode(Node):
-    type = Type.NOSGX
+from .server import ServerNode
+
+class NoSGXNode(ServerNode):
+    async def deploy(self, module):
+        logging.error("Not implemented")

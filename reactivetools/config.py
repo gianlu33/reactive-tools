@@ -95,10 +95,19 @@ def _load_sancus_node(node_dict):
 
 
 def _load_sgx_node(node_dict):
-    pass
+    name = node_dict['name']
+    ip_address = ipaddress.ip_address(node_dict['ip_address'])
+    em_port = node_dict['em_port']
+
+    return SGXNode(name, ip_address, em_port)
+
 
 def _load_nosgx_node(node_dict):
-    pass
+    name = node_dict['name']
+    ip_address = ipaddress.ip_address(node_dict['ip_address'])
+    em_port = node_dict['em_port']
+
+    return NoSGXNode(name, ip_address, em_port)
 
 
 def _load_module(mod_dict, config):
@@ -121,10 +130,17 @@ def _load_sancus_module(mod_dict, config):
 
 
 def _load_sgx_module(mod_dict, config):
-    pass
+    name = mod_dict['name']
+    node = config.get_node(mod_dict['node'])
+
+    return SGXModule(name, node)
+
 
 def _load_nosgx_module(mod_dict, config):
-    pass
+    name = mod_dict['name']
+    node = config.get_node(mod_dict['node'])
+
+    return NoSGXModule(name, node)
 
 
 def _load_connection(conn_dict, config):
@@ -231,27 +247,51 @@ def _(module):
 def _(node):
     return {
         "type": "sgx",
+        "name": node.name,
+        "ip_address": str(node.ip_address),
+        "em_port": node.deploy_port
     }
 
 
 @_dump.register(SGXModule)
 def _(module):
-    return {
+    return { #TODO
         "type": "sgx",
+        "name": module.name,
+        "node": module.node.name,
+        "id": module.id,
+        "binary": module.binary,
+        "sgxs": module.sgxs,
+        "signature": module.sig,
+        #"key": module.key,
+        "inputs": _dump(module.inputs),
+        "outputs": _dump(list(enumerate(module.outputs))),
+        "entrypoints": _dump(module.entrypoints)
     }
 
 
 @_dump.register(NoSGXNode)
 def _(node):
     return {
-        "type": "sgx",
+        "type": "nosgx",
+        "name": node.name,
+        "ip_address": str(node.ip_address),
+        "em_port": node.deploy_port
     }
 
 
 @_dump.register(NoSGXModule)
 def _(module):
     return {
-        "type": "sgx",
+        "type": "nosgx",
+        "name": module.name,
+        "node": module.node.name,
+        "id": module.id,
+        "binary": module.binary,
+        "key": module.key,
+        "inputs": _dump(module.inputs),
+        "outputs": _dump(list(enumerate(module.outputs))),
+        "entrypoints": _dump(module.entrypoints)
     }
 
 
@@ -281,6 +321,11 @@ def _(x):
 @_dump.register(Path)
 def _(path):
     return str(path)
+
+
+@_dump.register(tuple)
+def _(t):
+    return { t[1] : t[0] }
 
 
 @_dump.register(types.CoroutineType)

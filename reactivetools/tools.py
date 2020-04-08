@@ -2,6 +2,8 @@ import logging
 import tempfile
 import os
 import asyncio
+import base64
+import random
 
 
 class ProcessRunError(Exception):
@@ -28,3 +30,13 @@ def create_tmp(suffix=''):
     os.close(fd)
     return path
 
+
+def create_tmp_dir():
+    return tempfile.mkdtemp()
+
+
+# just used for NoSGX modules, so for testing
+def generate_key(length):
+    key = bytearray((random.getrandbits(8) for i in range(length)))
+
+    return base64.b64encode(key).decode()
