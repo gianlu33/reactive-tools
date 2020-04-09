@@ -67,6 +67,8 @@ class SGXModule(Module):
         logging.info("Deploying on node")
         await self.node.deploy(self)
 
+        # TODO remote attestation
+
 
     async def __generate_code(self):
         args = Object()

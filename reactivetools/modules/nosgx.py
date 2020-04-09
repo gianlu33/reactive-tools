@@ -26,6 +26,9 @@ class NoSGXModule(Module):
         self.id = node.get_module_id()
         self.output = tools.create_tmp_dir()
         self.key = tools.generate_key(16)
+        self.inputs = {}
+        self.outputs = {}
+        self.entrypoints = {}
 
 
     def __check_init_args(self, node):
@@ -39,6 +42,27 @@ class NoSGXModule(Module):
     def get_supported_node_type():
         return NoSGXNode
 
+
+    def get_input_id(self, input):
+        if input not in self.inputs:
+            raise Error("Input not present in inputs")
+
+        return self.inputs[input]
+
+
+    def get_output_id(self, output):
+        if output not in self.outputs:
+            raise Error("Output not present in outputs")
+
+        return self.outputs[output]
+
+
+    def get_entry_id(self, entry):
+        if entry not in self.entrypoints:
+            raise Error("Entry not present in entrypoints")
+
+        return self.entrypoints[entry]
+        
 
     async def deploy(self):
         # code injection

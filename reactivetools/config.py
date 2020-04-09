@@ -264,9 +264,9 @@ def _(module):
         "sgxs": module.sgxs,
         "signature": module.sig,
         #"key": module.key,
-        "inputs": _dump(module.inputs),
-        "outputs": _dump(list(enumerate(module.outputs))),
-        "entrypoints": _dump(module.entrypoints)
+        "inputs": module.inputs,
+        "outputs": module.outputs,
+        "entrypoints": module.entrypoints
     }
 
 
@@ -289,9 +289,9 @@ def _(module):
         "id": module.id,
         "binary": module.binary,
         "key": module.key,
-        "inputs": _dump(module.inputs),
-        "outputs": _dump(list(enumerate(module.outputs))),
-        "entrypoints": _dump(module.entrypoints)
+        "inputs": module.inputs,
+        "outputs": module.outputs,
+        "entrypoints": module.entrypoints
     }
 
 
