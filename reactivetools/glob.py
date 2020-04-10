@@ -1,7 +1,8 @@
 import os
+from pathlib import Path
 
 # TODO temporary: should be an argument or something else
-APP_PATH = "/home/gianlu33/Desktop/authentic-execution-sgx/app/"
+APP_PATH = "{}/Desktop/authentic-execution-sgx/app/".format(str(Path.home()))
 
 # SGX build / sign
 SGX_TARGET="x86_64-fortanix-unknown-sgx"

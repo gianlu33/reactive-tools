@@ -24,6 +24,7 @@ class NoSGXModule(Module):
         self.name = name
         self.node = node
         self.id = node.get_module_id()
+        self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
         self.key = tools.generate_key(16)
         self.inputs = None
@@ -77,6 +78,8 @@ class NoSGXModule(Module):
         #call deploy on the node
         await self.node.deploy(self)
 
+        logging.info("{} deploy completed".format(self.name))
+
 
     def __generate_code(self):
         args = Object()
@@ -103,5 +106,3 @@ class NoSGXModule(Module):
             raise Error("Build {} failed".format(self.name))
 
         self.binary = "{}/target/debug/{}".format(self.output, self.name)
-
-        #logging.debug("Executable in: {}".format(self.binary))

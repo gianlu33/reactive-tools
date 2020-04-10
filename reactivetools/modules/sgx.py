@@ -37,7 +37,15 @@ class SGXModule(Module):
         self.name = name
         self.node = node
         self.id = node.get_module_id()
+        self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
+        self.key = None
+        self.inputs = None
+        self.outputs = None
+        self.entrypoints = None
+        self.binary = None
+        self.sgxs = None
+        self.sig = None
 
     def __check_init_args(self, node):
         if not isinstance(node, self.get_supported_node_type()):
@@ -49,6 +57,27 @@ class SGXModule(Module):
     @staticmethod
     def get_supported_node_type():
         return SGXNode
+
+
+    def get_input_id(self, input):
+        if input not in self.inputs:
+            raise Error("Input not present in inputs")
+
+        return self.inputs[input]
+
+
+    def get_output_id(self, output):
+        if output not in self.outputs:
+            raise Error("Output not present in outputs")
+
+        return self.outputs[output]
+
+
+    def get_entry_id(self, entry):
+        if entry not in self.entrypoints:
+            raise Error("Entry not present in entrypoints")
+
+        return self.entrypoints[entry]
 
 
     async def deploy(self):
@@ -64,10 +93,13 @@ class SGXModule(Module):
         self.__convert_sign()
 
         #call deploy on the node
-        logging.info("Deploying on node")
         await self.node.deploy(self)
 
-        # TODO remote attestation
+        await asyncio.sleep(1) # to let module initialize properly
+        logging.info("Starting Remote Attestation of {}".format(self.name))
+        await self.__remote_attestation()
+
+        logging.info("{} deploy completed".format(self.name))
 
 
     async def __generate_code(self):
@@ -96,8 +128,6 @@ class SGXModule(Module):
 
         self.binary = "{}/target/{}/debug/{}".format(self.output, glob.SGX_TARGET, self.name)
 
-        #logging.debug("Executable in: {}".format(self.binary))
-
 
     def __convert_sign(self):
         convert_args = ["ftxsgx-elf2sgxs", self.binary, "--heap-size", "0x20000", "--stack-size", "0x20000", "--threads", "2", "--debug"]
@@ -115,4 +145,18 @@ class SGXModule(Module):
         sign_args = ["sgxs-sign", "--key", glob.VENDOR_PRIVATE_KEY, self.sgxs, self.sig, "-d", "--xfrm", "7/0", "--isvprodid", "0", "--isvsvn", "0"]
         retval = subprocess.call(sign_args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
         if retval != 0:
-            raise Error("Signature of {} failed".format(sm))
+            raise Error("Signature of {} failed".format(self.name))
+
+
+    async def __remote_attestation(self):
+        args = ["cargo", "run", "--manifest-path={}".format(glob.RA_CLIENT), str(self.node.ip_address), str(self.port), self.sig]
+
+        retval = subprocess.call(args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
+
+        if retval != 0:
+            raise Error("Attestation of {} failed".format(self.name))
+
+        await asyncio.sleep(1) # to let ra_sp write the key to file
+
+        with open("{}.key".format(self.binary), "rb") as f: # TODO async
+            self.key = f.read()

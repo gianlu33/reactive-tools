@@ -1,0 +1,30 @@
+{
+    "nodes": [
+        {
+            "type": "nosgx",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "em_port": 5000
+        }
+    ],
+    "modules" : [
+        {
+            "type": "nosgx",
+            "name": "sm1",
+            "node": "node1"
+        },
+        {
+            "type": "nosgx",
+            "name": "sm2",
+            "node": "node1"
+        }
+    ],
+    "connections" : [
+      {
+          "from_module": "sm1",
+          "from_output": "output",
+          "to_module": "sm2",
+          "to_input": "input"
+      }
+    ]
+}
