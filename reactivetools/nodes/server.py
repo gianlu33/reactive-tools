@@ -12,6 +12,10 @@ from .base import Node
 from ..connection import ConnectionIO
 from .. import glob
 
+class Error(Exception):
+    pass
+
+
 class ServerNode(Node):
     def __init__(self, name, ip_address, deploy_port, reactive_port=None):
         self.name = name
@@ -35,44 +39,45 @@ class ServerNode(Node):
     async def connect(self, from_module, from_output, to_module, to_input):
         assert from_module.node is self
 
-        logging.info('Connecting %s:%s to %s:%s on %s',
-             from_module.name, from_output,
-             to_module.name, to_input,
-             self.name))
+        logging.info('Connecting %s:%s to %s:%s on %s', from_module.name, from_output,
+             to_module.name, to_input, self.name)
 
-        payload = self.__pack_int(from_module.id)   + \
-                  self.__pack_int(from_module.get_output_id(from_output))   + \
-                  self.__pack_int(to_module.id)     + \
-                  self.__pack_int(to_module.get_input_id(to_input))     + \
-                  self.__pack_int(to_module.node.reactive_port)     + \
+        payload = self._pack_int(from_module.id)   + \
+                  self._pack_int(from_module.get_output_id(from_output))   + \
+                  self._pack_int(to_module.id)     + \
+                  self._pack_int(to_module.get_input_id(to_input))     + \
+                  self._pack_int(to_module.node.reactive_port)     + \
                   to_module.node.ip_address.packed
 
-        await self.__send_reactive_command(_ReactiveCommand.Connect, payload)
+        await self._send_reactive_command(payload, _ReactiveCommand.Connect)
 
 
     async def set_key(self, module, io_name, key, conn_io):
         logging.info("Setting the key of {}:{}".format(module.name, io_name))
-
-        nonce = self.__get_nonce(module)
-        args = ["cargo", "run", "--manifest-path={}".format(glob.ENCRYPTOR), str(io_name), str(nonce), key, module.key]
-
-        out = subprocess.check_output(args, stderr=open("/dev/null", "wb"))
-        cipher = base64.b64decode(out)
 
         if conn_io == ConnectionIO.OUTPUT:
             io_id = module.get_output_id(io_name)
         else:
             io_id = module.get_input_id(io_name)
 
-        payload =   self.__pack_int(module.id)                + \
-                    self.__pack_int(_CallEntrypoint.SetKey)   + \
-                    self.__pack_int(io_id)                    + \
-                    self.__pack_int(nonce)                    + \
+        nonce = self.__get_nonce(module)
+        args = [
+                "cargo", "run", "--manifest-path={}".format(glob.ENCRYPTOR),
+                str(io_id), str(nonce),
+                base64.b64encode(key).decode(),
+                base64.b64encode(module.key).decode()
+               ]
+
+        out = subprocess.check_output(args, stderr=open("/dev/null", "wb"))
+        cipher = base64.b64decode(out)
+
+        payload =   self._pack_int(module.id)                + \
+                    self._pack_int(_CallEntrypoint.SetKey)   + \
+                    self._pack_int(io_id)                    + \
+                    self._pack_int(nonce)                    + \
                     cipher
 
-        await self.__send_reactive_command(_ReactiveCommand.Call, payload)
-
-        # TODO wait for response?!
+        await self._send_reactive_command(payload, _ReactiveCommand.Call)
 
 
     async def call(self, module, entry, arg=None):
@@ -86,10 +91,11 @@ class ServerNode(Node):
         return id
 
 
-    # TODO
-    async def __send_reactive_command(self, command, payload, result_len=0,
-                                      *, log=None):
-        packet = self.__create_reactive_packet(command, payload)
+    async def _send_reactive_command(self, payload, command=None, result_len=0):
+        if command is not None:
+            packet = self.__create_reactive_packet(command, payload)
+        else:
+            packet = payload
 
         reader, writer = await asyncio.open_connection(str(self.ip_address),
                                                        self.reactive_port)
@@ -107,8 +113,8 @@ class ServerNode(Node):
 
 
     def __create_reactive_packet(self, command, payload):
-        return self.__pack_int(command)      + \
-               self.__pack_int(len(payload)) + \
+        return self._pack_int(command)      + \
+               self._pack_int(len(payload)) + \
                payload
 
 
@@ -119,12 +125,20 @@ class ServerNode(Node):
 
 
     @staticmethod
-    def __pack_int(i):
+    def _pack_int(i):
         return struct.pack('!H', i)
 
     @staticmethod
-    def __unpack_int(i):
+    def _unpack_int(i):
         return struct.unpack('!H', i)[0]
+
+    @staticmethod
+    def _pack_int32(i):
+        return struct.pack('!i', i)
+
+    @staticmethod
+    def _unpack_int32(i):
+        return struct.unpack('!i', i)[0]
 
 
 class _ReactiveCommand(IntEnum):
@@ -138,7 +152,6 @@ class _CallEntrypoint(IntEnum):
     SetKey  = 0x0
 
 
-# TODO
 class _ReactiveResultCode(IntEnum):
     Ok                = 0x0
     ErrIllegalCommand = 0x1

@@ -13,6 +13,7 @@ import sancus.config
 from .nodes import SancusNode, SGXNode, NoSGXNode
 from .modules import SancusModule, SGXModule, NoSGXModule
 from .connection import Connection
+from . import tools
 
 
 class Error(Exception):
@@ -154,7 +155,8 @@ def _load_connection(conn_dict, config):
     if 'key' in conn_dict:
         key = conn_dict['key']
     else:
-        key = os.urandom(sancus.config.SECURITY // 8)
+        key = tools.generate_key(16) # TODO different lengths for different connections (e.g sancus-sgx or sgx-sgx)
+         #os.urandom(sancus.config.SECURITY // 8)
 
     return Connection(from_module, from_output, to_module, to_input, key)
 
@@ -263,7 +265,7 @@ def _(module):
         "binary": module.binary,
         "sgxs": module.sgxs,
         "signature": module.sig,
-        #"key": module.key,
+        #"key": _dump(module.key),
         "inputs": module.inputs,
         "outputs": module.outputs,
         "entrypoints": module.entrypoints
@@ -288,7 +290,7 @@ def _(module):
         "node": module.node.name,
         "id": module.id,
         "binary": module.binary,
-        "key": module.key,
+        "key": _dump(module.key),
         "inputs": module.inputs,
         "outputs": module.outputs,
         "entrypoints": module.entrypoints
