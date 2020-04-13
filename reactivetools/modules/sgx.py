@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import subprocess
 import os
 
 from .base import Module
@@ -138,12 +137,8 @@ class SGXModule(Module):
     async def __build(self):
         logging.info("Building module {}".format(self.name))
 
-        args = ["cargo", "build", "--manifest-path={}/Cargo.toml".format(self.output), "--target={}".format(glob.SGX_TARGET)]
-
-        retval = subprocess.call(args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
-
-        if retval != 0:
-            raise Error("Build {} failed".format(self.name))
+        cmd = glob.BUILD_SGX_APP.format(self.output)
+        await tools.run_async_shell(cmd)
 
         self.binary = "{}/target/{}/debug/{}".format(self.output, glob.SGX_TARGET, self.name)
 
@@ -158,22 +153,14 @@ class SGXModule(Module):
     async def __convert_sign(self):
         logging.info("Converting & signing module {}".format(self.name))
 
-        convert_args = ["ftxsgx-elf2sgxs", self.binary, "--heap-size", "0x20000", "--stack-size", "0x20000", "--threads", "2", "--debug"]
-
-        # converting
-        retval = subprocess.call(convert_args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
-        if retval != 0:
-            raise Error("Conversion of {} failed".format(self.name))
-
         self.sgxs = "{}.sgxs".format(self.binary)
         self.sig = "{}.sig".format(self.binary)
 
-        # signing
-        # TODO check arguments
-        sign_args = ["sgxs-sign", "--key", glob.VENDOR_PRIVATE_KEY, self.sgxs, self.sig, "-d", "--xfrm", "7/0", "--isvprodid", "0", "--isvsvn", "0"]
-        retval = subprocess.call(sign_args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
-        if retval != 0:
-            raise Error("Signature of {} failed".format(self.name))
+        cmd_convert = glob.CONVERT_SGX.format(self.binary)
+        cmd_sign = glob.SIGN_SGX.format(self.sgxs, self.sig)
+
+        await tools.run_async_shell(cmd_convert)
+        await tools.run_async_shell(cmd_sign)
 
 
     async def remote_attestation(self):
@@ -186,12 +173,9 @@ class SGXModule(Module):
     async def __remote_attestation(self):
         logging.info("Starting Remote Attestation of {}".format(self.name))
 
-        args = ["cargo", "run", "--manifest-path={}".format(glob.RA_CLIENT), str(self.node.ip_address), str(self.port), self.sig]
-
-        retval = subprocess.call(args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
-
-        if retval != 0:
-            raise Error("Attestation of {} failed".format(self.name))
+        cmd = "cargo run --manifest-path={} {} {} {}".format(
+            glob.RA_CLIENT, self.node.ip_address, self.port, self.sig)
+        await tools.run_async_shell(cmd)
 
         await asyncio.sleep(1) # to let ra_sp write the key to file
 

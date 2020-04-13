@@ -4,13 +4,13 @@ import logging
 from abc import ABC, abstractmethod
 import struct
 from enum import IntEnum
-import subprocess
 import base64
 import contextlib
 
 from .base import Node
 from ..connection import ConnectionIO
 from .. import glob
+from .. import tools
 
 class Error(Exception):
     pass
@@ -66,14 +66,14 @@ class ServerNode(Node):
             io_id = module.get_input_id(io_name)
 
         nonce = self.__get_nonce(module)
-        args = [
-                "cargo", "run", "--manifest-path={}".format(glob.ENCRYPTOR),
-                str(io_id), str(nonce),
-                base64.b64encode(key).decode(),
-                base64.b64encode(module.key).decode()
-               ]
 
-        out = subprocess.check_output(args, stderr=open("/dev/null", "wb"))
+        # encrypting key
+        cmd = "cargo run --manifest-path={} {} {} {} {}".format(
+            glob.ENCRYPTOR, io_id, nonce, base64.b64encode(key).decode(),
+            base64.b64encode(module.key).decode()
+        )
+        out = await tools.run_async_shell_output(cmd)
+
         cipher = base64.b64decode(out)
 
         payload =   self._pack_int(module.id)                + \

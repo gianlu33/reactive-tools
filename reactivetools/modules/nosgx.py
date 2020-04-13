@@ -1,12 +1,12 @@
 import asyncio
 import logging
-import subprocess
 import os
 
 from .base import Module
 
 from ..nodes import NoSGXNode
 from .. import tools
+from .. import glob
 
 import rustsgxgen.main as generator
 
@@ -120,11 +120,7 @@ class NoSGXModule(Module):
     async def __build(self):
         logging.info("Building module {}".format(self.name))
 
-        args = ["cargo", "build", "--manifest-path={}/Cargo.toml".format(self.output)]
-
-        retval = subprocess.call(args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
-
-        if retval != 0:
-            raise Error("Build {} failed".format(self.name))
+        cmd = glob.BUILD_APP.format(self.output)
+        await tools.run_async_shell(cmd)
 
         self.binary = "{}/target/debug/{}".format(self.output, self.name)
