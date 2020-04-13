@@ -21,6 +21,10 @@ class NoSGXModule(Module):
     def __init__(self, name, node):
         self.__check_init_args(node)
 
+        self.__deploy_fut = None
+        self.__generate_fut = None
+        self.__build_fut = None
+
         self.name = name
         self.node = node
         self.id = node.get_module_id()
@@ -67,21 +71,30 @@ class NoSGXModule(Module):
 
 
     async def deploy(self):
-        # code injection
-        logging.info("Generating code for module {}".format(self.name))
-        self.__generate_code()
+        if self.__deploy_fut is None:
+            self.__deploy_fut = asyncio.ensure_future(self.__deploy())
 
-        # build
-        logging.info("Building module {}".format(self.name))
-        self.__build()
+        await self.__deploy_fut
 
-        #call deploy on the node
+
+    async def __deploy(self):
+        await self.generate_code()
+        await self.build()
         await self.node.deploy(self)
 
         logging.info("{} deploy completed".format(self.name))
 
 
-    def __generate_code(self):
+    async def generate_code(self):
+        if self.__generate_fut is None:
+            self.__generate_fut = asyncio.ensure_future(self.__generate_code())
+
+        await self.__generate_fut
+
+
+    async def __generate_code(self):
+        logging.info("Generating code for module {}".format(self.name))
+
         args = Object()
 
         args.input = self.name
@@ -97,7 +110,16 @@ class NoSGXModule(Module):
         self.inputs, self.outputs, self.entrypoints = generator.generate(args)
 
 
-    def __build(self):
+    async def build(self):
+        if self.__build_fut is None:
+            self.__build_fut = asyncio.ensure_future(self.__build())
+
+        await self.__build_fut
+
+
+    async def __build(self):
+        logging.info("Building module {}".format(self.name))
+
         args = ["cargo", "build", "--manifest-path={}/Cargo.toml".format(self.output)]
 
         retval = subprocess.call(args, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)

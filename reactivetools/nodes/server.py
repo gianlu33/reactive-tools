@@ -39,6 +39,9 @@ class ServerNode(Node):
     async def connect(self, from_module, from_output, to_module, to_input):
         assert from_module.node is self
 
+        await from_module.generate_code()
+        await to_module.generate_code()
+
         logging.info('Connecting %s:%s to %s:%s on %s', from_module.name, from_output,
              to_module.name, to_input, self.name)
 
@@ -54,6 +57,8 @@ class ServerNode(Node):
 
     async def set_key(self, module, io_name, key, conn_io):
         logging.info("Setting the key of {}:{}".format(module.name, io_name))
+
+        await module.deploy()
 
         if conn_io == ConnectionIO.OUTPUT:
             io_id = module.get_output_id(io_name)
