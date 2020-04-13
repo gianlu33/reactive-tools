@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import aiofile
 
 from .base import Module
 
@@ -19,8 +20,8 @@ class Error(Exception):
 
 async def _get_sp_key():
     try:
-        with open(glob.RA_SP_PUB_KEY, "r") as f:
-            key = f.read()
+        async with aiofile.AIOFile(glob.RA_SP_PUB_KEY, "r") as f:
+            key = await f.read()
     except:
         raise Error("Failed to load ra_sp public key")
 
@@ -44,13 +45,46 @@ class SGXModule(Module):
         self.id = node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
-        self.key = None
         self.inputs = None
         self.outputs = None
         self.entrypoints = None
-        self.binary = None
-        self.sgxs = None
-        self.sig = None
+
+
+    @property
+    async def key(self):
+        if self.__ra_fut is None:
+            self.__ra_fut = asyncio.ensure_future(self.__remote_attestation())
+
+        return await self.__ra_fut
+
+
+    @property
+    async def binary(self):
+        if self.__build_fut is None:
+            self.__build_fut = asyncio.ensure_future(self.__build())
+
+        return await self.__build_fut
+
+
+    @property
+    async def sgxs(self):
+        if self.__convert_sign_fut is None:
+            self.__convert_sign_fut = asyncio.ensure_future(self.__convert_sign())
+
+        sgxs, _ = await self.__convert_sign_fut
+
+        return sgxs
+
+
+    @property
+    async def sig(self):
+        if self.__convert_sign_fut is None:
+            self.__convert_sign_fut = asyncio.ensure_future(self.__convert_sign())
+
+        _, sig = await self.__convert_sign_fut
+
+        return sig
+
 
     def __check_init_args(self, node):
         if not isinstance(node, self.get_supported_node_type()):
@@ -93,14 +127,7 @@ class SGXModule(Module):
 
 
     async def __deploy(self):
-        await self.generate_code()
-        await self.build()
-        await self.convert_sign()
         await self.node.deploy(self)
-        await asyncio.sleep(1) # to let module initialize properly
-        await self.remote_attestation()
-
-        logging.info("{} deploy completed".format(self.name))
 
 
     async def generate_code(self):
@@ -111,7 +138,6 @@ class SGXModule(Module):
 
 
     async def __generate_code(self):
-        logging.info("Generating code for module {}".format(self.name))
         args = Object()
 
         args.input = self.name
@@ -125,59 +151,51 @@ class SGXModule(Module):
 
 
         self.inputs, self.outputs, self.entrypoints = generator.generate(args)
-
-
-    async def build(self):
-        if self.__build_fut is None:
-            self.__build_fut = asyncio.ensure_future(self.__build())
-
-        await self.__build_fut
+        logging.info("Generated code for module {}".format(self.name))
 
 
     async def __build(self):
-        logging.info("Building module {}".format(self.name))
+        await self.generate_code()
 
         cmd = glob.BUILD_SGX_APP.format(self.output)
         await tools.run_async_shell(cmd)
 
-        self.binary = "{}/target/{}/debug/{}".format(self.output, glob.SGX_TARGET, self.name)
+        binary = "{}/target/{}/debug/{}".format(self.output, glob.SGX_TARGET, self.name)
 
+        logging.info("Built module {}".format(self.name))
 
-    async def convert_sign(self):
-        if self.__convert_sign_fut is None:
-            self.__convert_sign_fut = asyncio.ensure_future(self.__convert_sign())
-
-        await self.__convert_sign_fut
+        return binary
 
 
     async def __convert_sign(self):
-        logging.info("Converting & signing module {}".format(self.name))
+        binary = await self.binary
 
-        self.sgxs = "{}.sgxs".format(self.binary)
-        self.sig = "{}.sig".format(self.binary)
+        sgxs = "{}.sgxs".format(binary)
+        sig = "{}.sig".format(binary)
 
-        cmd_convert = glob.CONVERT_SGX.format(self.binary)
-        cmd_sign = glob.SIGN_SGX.format(self.sgxs, self.sig)
+        cmd_convert = glob.CONVERT_SGX.format(binary)
+        cmd_sign = glob.SIGN_SGX.format(sgxs, sig)
 
         await tools.run_async_shell(cmd_convert)
         await tools.run_async_shell(cmd_sign)
 
+        logging.info("Converted & signed module {}".format(self.name))
 
-    async def remote_attestation(self):
-        if self.__ra_fut is None:
-            self.__ra_fut = asyncio.ensure_future(self.__remote_attestation())
-
-        await self.__ra_fut
+        return sgxs, sig
 
 
     async def __remote_attestation(self):
-        logging.info("Starting Remote Attestation of {}".format(self.name))
-
+        await self.deploy()
+        
         cmd = "cargo run --manifest-path={} {} {} {}".format(
-            glob.RA_CLIENT, self.node.ip_address, self.port, self.sig)
+            glob.RA_CLIENT, self.node.ip_address, self.port, await self.sig)
         await tools.run_async_shell(cmd)
 
         await asyncio.sleep(1) # to let ra_sp write the key to file
 
-        with open("{}.key".format(self.binary), "rb") as f: # TODO async
-            self.key = f.read()
+        async with aiofile.AIOFile("{}.key".format(await self.binary), "rb") as f:
+            key = await f.read()
+
+        logging.info("Done Remote Attestation of {}".format(self.name))
+
+        return key

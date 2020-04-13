@@ -42,9 +42,6 @@ class ServerNode(Node):
         await from_module.generate_code()
         await to_module.generate_code()
 
-        logging.info('Connecting %s:%s to %s:%s on %s', from_module.name, from_output,
-             to_module.name, to_input, self.name)
-
         payload = self._pack_int(from_module.id)   + \
                   self._pack_int(from_module.get_output_id(from_output))   + \
                   self._pack_int(to_module.id)     + \
@@ -53,11 +50,11 @@ class ServerNode(Node):
                   to_module.node.ip_address.packed
 
         await self._send_reactive_command(payload, _ReactiveCommand.Connect)
+        logging.info('Connected %s:%s to %s:%s on %s', from_module.name, from_output,
+             to_module.name, to_input, self.name)
 
 
     async def set_key(self, module, io_name, key, conn_io):
-        logging.info("Setting the key of {}:{}".format(module.name, io_name))
-
         await module.deploy()
 
         if conn_io == ConnectionIO.OUTPUT:
@@ -70,7 +67,7 @@ class ServerNode(Node):
         # encrypting key
         cmd = "cargo run --manifest-path={} {} {} {} {}".format(
             glob.ENCRYPTOR, io_id, nonce, base64.b64encode(key).decode(),
-            base64.b64encode(module.key).decode()
+            base64.b64encode(await module.key).decode()
         )
         out = await tools.run_async_shell_output(cmd)
 
@@ -83,6 +80,7 @@ class ServerNode(Node):
                     cipher
 
         await self._send_reactive_command(payload, _ReactiveCommand.Call)
+        logging.info("Set the key of {}:{}".format(module.name, io_name))
 
 
     async def call(self, module, entry, arg=None):

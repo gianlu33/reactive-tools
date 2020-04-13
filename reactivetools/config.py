@@ -257,15 +257,15 @@ def _(node):
 
 @_dump.register(SGXModule)
 def _(module):
-    return { #TODO
+    return {
         "type": "sgx",
         "name": module.name,
         "node": module.node.name,
         "id": module.id,
-        "binary": module.binary,
-        "sgxs": module.sgxs,
-        "signature": module.sig,
-        #"key": _dump(module.key),
+        "binary": _dump(module.binary),
+        "sgxs": _dump(module.sgxs),
+        "signature": _dump(module.sig),
+        "key": _dump(module.key),
         "inputs": module.inputs,
         "outputs": module.outputs,
         "entrypoints": module.entrypoints
@@ -289,7 +289,7 @@ def _(module):
         "name": module.name,
         "node": module.node.name,
         "id": module.id,
-        "binary": module.binary,
+        "binary": _dump(module.binary),
         "key": _dump(module.key),
         "inputs": module.inputs,
         "outputs": module.outputs,

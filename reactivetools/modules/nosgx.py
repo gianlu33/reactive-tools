@@ -24,17 +24,32 @@ class NoSGXModule(Module):
         self.__deploy_fut = None
         self.__generate_fut = None
         self.__build_fut = None
+        self.__gen_key_fut = None
 
         self.name = name
         self.node = node
         self.id = node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
-        self.key = tools.generate_key(16)
         self.inputs = None
         self.outputs = None
         self.entrypoints = None
-        self.binary = None
+
+
+    @property
+    async def key(self):
+        if self.__gen_key_fut is None:
+            self.__gen_key_fut = asyncio.ensure_future(self.__generate_key())
+
+        return await self.__gen_key_fut
+
+
+    @property
+    async def binary(self):
+        if self.__build_fut is None:
+            self.__build_fut = asyncio.ensure_future(self.__build())
+
+        return await self.__build_fut
 
 
     def __check_init_args(self, node):
@@ -78,11 +93,7 @@ class NoSGXModule(Module):
 
 
     async def __deploy(self):
-        await self.generate_code()
-        await self.build()
         await self.node.deploy(self)
-
-        logging.info("{} deploy completed".format(self.name))
 
 
     async def generate_code(self):
@@ -93,14 +104,12 @@ class NoSGXModule(Module):
 
 
     async def __generate_code(self):
-        logging.info("Generating code for module {}".format(self.name))
-
         args = Object()
 
         args.input = self.name
         args.output = self.output
         args.moduleid = self.id
-        args.key = self.key
+        args.key = await self.key
         args.emport = self.node.deploy_port
         args.runner = "runner_nosgx"
         args.spkey = None
@@ -108,19 +117,20 @@ class NoSGXModule(Module):
 
 
         self.inputs, self.outputs, self.entrypoints = generator.generate(args)
-
-
-    async def build(self):
-        if self.__build_fut is None:
-            self.__build_fut = asyncio.ensure_future(self.__build())
-
-        await self.__build_fut
+        logging.info("Generated code for module {}".format(self.name))
 
 
     async def __build(self):
-        logging.info("Building module {}".format(self.name))
+        await self.generate_code()
 
         cmd = glob.BUILD_APP.format(self.output)
         await tools.run_async_shell(cmd)
 
-        self.binary = "{}/target/debug/{}".format(self.output, self.name)
+        binary = "{}/target/debug/{}".format(self.output, self.name)
+
+        logging.info("Built module {}".format(self.name))
+        return binary
+
+
+    async def __generate_key(self):
+        return tools.generate_key(16)

@@ -1,19 +1,18 @@
 import asyncio
 import collections
 import logging
+import aiofile
 
 from .server import ServerNode, _ReactiveCommand, Error
 
 
 class SGXNode(ServerNode):
     async def deploy(self, module):
-        logging.info("Sending {} to {}".format(module.name, self.name))
+        async with aiofile.AIOFile(await module.sgxs, "rb") as f:
+            sgxs = await f.read()
 
-        with open(module.sgxs, "rb") as f: # TODO async?
-            sgxs = f.read()
-
-        with open(module.sig, "rb") as f: # TODO async?
-            sig = f.read()
+        async with aiofile.AIOFile(await module.sig, "rb") as f:
+            sig = await f.read()
 
 
         payload =   self._pack_int(_ReactiveCommand.Load)       + \
@@ -23,3 +22,4 @@ class SGXNode(ServerNode):
                     sig
 
         await self._send_reactive_command(payload=payload)
+        logging.info("Sent {} to {}".format(module.name, self.name))
