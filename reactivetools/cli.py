@@ -111,6 +111,8 @@ def _handle_deploy(args):
         logging.info('Writing post-deployment configuration to %s', args.result)
         config.dump(conf, args.result)
 
+    conf.cleanup()
+
 
 def _handle_call(args):
     logging.info('Calling %s:%s', args.module, args.entry)
@@ -141,4 +143,3 @@ def main(raw_args=None):
         # exception being thrown from its destructor. Not sure why but closing
         # it here prevents annoying noise.
         asyncio.get_event_loop().close()
-

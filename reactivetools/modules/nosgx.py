@@ -8,7 +8,8 @@ from ..nodes import NoSGXNode
 from .. import tools
 from .. import glob
 
-import rustsgxgen.main as generator
+import rustsgxgen
+from rustsgxgen import generator
 
 class Object():
     pass
@@ -18,22 +19,38 @@ class Error(Exception):
 
 
 class NoSGXModule(Module):
-    def __init__(self, name, node):
-        self.__check_init_args(node)
+    def __init__(self, name, node, id=None, binary=None, key=None, inputs=None,
+                    outputs=None, entrypoints=None):
+        self.__check_init_args(node, id, binary, key, inputs, outputs, entrypoints)
 
-        self.__deploy_fut = None
-        self.__generate_fut = None
-        self.__build_fut = None
-        self.__gen_key_fut = None
+        self.__deploy_fut = tools.init_future(id) # not completely true
+        self.__generate_fut = tools.init_future(inputs, outputs, entrypoints)
+        self.__build_fut = tools.init_future(binary)
+        self.__gen_key_fut = tools.init_future(key)
 
         self.name = name
         self.node = node
-        self.id = node.get_module_id()
+        self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
-        self.inputs = None
-        self.outputs = None
-        self.entrypoints = None
+
+
+    @property
+    async def inputs(self):
+        inputs, _outs, _entrys = await self.generate_code()
+        return inputs
+
+
+    @property
+    async def outputs(self):
+        _ins, outputs, _entrys = await self.generate_code()
+        return outputs
+
+
+    @property
+    async def entrypoints(self):
+        _ins, _outs, entrypoints = await self.generate_code()
+        return entrypoints
 
 
     @property
@@ -52,11 +69,30 @@ class NoSGXModule(Module):
         return await self.__build_fut
 
 
-    def __check_init_args(self, node):
+    def __check_init_args(self, node, id, binary, key, inputs, outputs, entrypoints):
         if not isinstance(node, self.get_supported_node_type()):
             clsname = lambda o: type(o).__name__
             raise Error('A {} cannot run on a {}'
                     .format(clsname(self), clsname(node)))
+
+        # For now, either all optionals should be given or none. This might be
+        # relaxed later if necessary.
+        optionals = (id, binary, key, inputs, outputs, entrypoints)
+
+        if None in optionals and any(map(lambda x: x is not None, optionals)):
+            raise Error('Either all of the optional node parameters '
+                        'should be given or none')
+
+
+    @staticmethod
+    def __init_future(*results):
+        if all(map(lambda x: x is None, results)):
+            return None
+
+        fut = asyncio.Future()
+        result = results[0] if len(results) == 1 else results
+        fut.set_result(result)
+        return fut
 
 
     @staticmethod
@@ -64,25 +100,35 @@ class NoSGXModule(Module):
         return NoSGXNode
 
 
-    def get_input_id(self, input):
-        if input not in self.inputs:
+    async def call(self, entry, arg=None):
+        return await self.node.call(self, entry, arg)
+
+
+    async def get_input_id(self, input):
+        inputs = await self.inputs
+
+        if input not in inputs:
             raise Error("Input not present in inputs")
 
-        return self.inputs[input]
+        return inputs[input]
 
 
-    def get_output_id(self, output):
-        if output not in self.outputs:
+    async def get_output_id(self, output):
+        outputs = await self.outputs
+
+        if output not in outputs:
             raise Error("Output not present in outputs")
 
-        return self.outputs[output]
+        return outputs[output]
 
 
-    def get_entry_id(self, entry):
-        if entry not in self.entrypoints:
+    async def get_entry_id(self, entry):
+        entrypoints = await self.entrypoints
+
+        if entry not in entrypoints:
             raise Error("Entry not present in entrypoints")
 
-        return self.entrypoints[entry]
+        return entrypoints[entry]
 
 
     async def deploy(self):
@@ -100,7 +146,7 @@ class NoSGXModule(Module):
         if self.__generate_fut is None:
             self.__generate_fut = asyncio.ensure_future(self.__generate_code())
 
-        await self.__generate_fut
+        return await self.__generate_fut
 
 
     async def __generate_code(self):
@@ -115,15 +161,16 @@ class NoSGXModule(Module):
         args.spkey = None
         args.print = None
 
-
-        self.inputs, self.outputs, self.entrypoints = generator.generate(args)
+        inputs, outputs, entrypoints = generator.generate(args)
         logging.info("Generated code for module {}".format(self.name))
+
+        return inputs, outputs, entrypoints
 
 
     async def __build(self):
         await self.generate_code()
 
-        cmd = glob.BUILD_APP.format(self.output)
+        cmd = glob.BUILD_APP.format(self.output).split()
         await tools.run_async_muted(*cmd)
 
         binary = "{}/target/{}/{}".format(self.output, glob.BUILD_MODE, self.name)

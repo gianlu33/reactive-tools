@@ -29,9 +29,9 @@ class SancusModule(Module):
         self.ldflags = ldflags
         self.node = node
 
-        self.__build_fut = self.__init_future(binary)
-        self.__deploy_fut = self.__init_future(id, symtab)
-        self.__key_fut = self.__init_future(key)
+        self.__build_fut = tools.init_future(binary)
+        self.__deploy_fut = tools.init_future(id, symtab)
+        self.__key_fut = tools.init_future(key)
 
     @property
     async def binary(self):

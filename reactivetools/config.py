@@ -60,6 +60,14 @@ class Config:
                                 self.deploy_modules_ordered_async())
 
 
+    def cleanup(self):
+        asyncio.get_event_loop().run_until_complete(self.cleanup_async())
+
+
+    async def cleanup_async(self):
+        await SGXModule.kill_ra_sp()
+
+
 def load(file_name):
     with open(file_name, 'r') as f:
         contents = json.load(f)
@@ -135,15 +143,30 @@ def _load_sgx_module(mod_dict, config):
     node = config.get_node(mod_dict['node'])
     vendor_key = mod_dict['vendor_key']
     settings = mod_dict['ra_settings']
+    id = mod_dict.get('id')
+    binary = mod_dict.get('binary')
+    key = mod_dict.get('key')
+    sgxs = mod_dict.get('sgxs')
+    signature = mod_dict.get('signature')
+    inputs = mod_dict.get('inputs')
+    outputs = mod_dict.get('outputs')
+    entrypoints = mod_dict.get('entrypoints')
 
-    return SGXModule(name, node, vendor_key, settings)
+    return SGXModule(name, node, vendor_key, settings, id, binary, key, sgxs,
+                        signature, inputs, outputs, entrypoints)
 
 
 def _load_nosgx_module(mod_dict, config):
     name = mod_dict['name']
     node = config.get_node(mod_dict['node'])
+    id = mod_dict.get('id')
+    binary = mod_dict.get('binary')
+    key = mod_dict.get('key')
+    inputs = mod_dict.get('inputs')
+    outputs = mod_dict.get('outputs')
+    entrypoints = mod_dict.get('entrypoints')
 
-    return NoSGXModule(name, node)
+    return NoSGXModule(name, node, id, binary, key, inputs, outputs, entrypoints)
 
 
 def _load_connection(conn_dict, config):
@@ -270,9 +293,9 @@ def _(module):
         "sgxs": _dump(module.sgxs),
         "signature": _dump(module.sig),
         "key": _dump(module.key),
-        "inputs": module.inputs,
-        "outputs": module.outputs,
-        "entrypoints": module.entrypoints
+        "inputs": _dump(module.inputs),
+        "outputs": _dump(module.outputs),
+        "entrypoints": _dump(module.entrypoints)
     }
 
 
@@ -295,9 +318,9 @@ def _(module):
         "id": module.id,
         "binary": _dump(module.binary),
         "key": _dump(module.key),
-        "inputs": module.inputs,
-        "outputs": module.outputs,
-        "entrypoints": module.entrypoints
+        "inputs": _dump(module.inputs),
+        "outputs": _dump(module.outputs),
+        "entrypoints": _dump(module.entrypoints)
     }
 
 
@@ -337,3 +360,8 @@ def _(t):
 @_dump.register(types.CoroutineType)
 def _(coro):
     return _dump(asyncio.get_event_loop().run_until_complete(coro))
+
+
+@_dump.register(dict)
+def _(dict):
+    return dict

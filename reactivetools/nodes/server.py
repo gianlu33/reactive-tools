@@ -39,13 +39,10 @@ class ServerNode(Node):
     async def connect(self, from_module, from_output, to_module, to_input):
         assert from_module.node is self
 
-        await from_module.generate_code()
-        await to_module.generate_code()
-
         payload = self._pack_int(from_module.id)   + \
-                  self._pack_int(from_module.get_output_id(from_output))   + \
+                  self._pack_int(await from_module.get_output_id(from_output))   + \
                   self._pack_int(to_module.id)     + \
-                  self._pack_int(to_module.get_input_id(to_input))     + \
+                  self._pack_int(await to_module.get_input_id(to_input))     + \
                   self._pack_int(to_module.node.reactive_port)     + \
                   to_module.node.ip_address.packed
 
@@ -58,9 +55,9 @@ class ServerNode(Node):
         await module.deploy()
 
         if conn_io == ConnectionIO.OUTPUT:
-            io_id = module.get_output_id(io_name)
+            io_id = await module.get_output_id(io_name)
         else:
-            io_id = module.get_input_id(io_name)
+            io_id = await module.get_input_id(io_name)
 
         nonce = self.__get_nonce(module)
 
@@ -83,7 +80,15 @@ class ServerNode(Node):
 
 
     async def call(self, module, entry, arg=None):
-        logging.error("To be implemented")
+        module_id = module.id
+        entry_id = await module.get_entry_id(entry)
+
+        payload = self._pack_int(module_id) + \
+                  self._pack_int(entry_id)  + \
+                  (b'' if arg is None else arg)
+
+        await self._send_reactive_command(payload, _ReactiveCommand.Call)
+        logging.info("Sent call to {}:{} ({}:{}) on {}".format(module.name, entry, module_id, entry_id, self.name))
 
 
     def get_module_id(self):

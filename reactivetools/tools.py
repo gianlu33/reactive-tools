@@ -15,8 +15,18 @@ class ProcessRunError(Exception):
                     .format(' '.join(self.args), self.result)
 
 
+def init_future(*results):
+    if all(map(lambda x: x is None, results)):
+        return None
+
+    fut = asyncio.Future()
+    result = results[0] if len(results) == 1 else results
+    fut.set_result(result)
+    return fut
+
+
 async def run_async(*args):
-    logging.info(' '.join(args))
+    logging.debug(' '.join(args))
     process = await asyncio.create_subprocess_exec(*args)
     result = await process.wait()
 
@@ -25,7 +35,7 @@ async def run_async(*args):
 
 
 async def run_async_muted(*args, output_file=os.devnull):
-    logging.info(' '.join(args))
+    logging.debug(' '.join(args))
     process = await asyncio.create_subprocess_exec(*args, stdout=open(output_file, 'wb'), stderr=asyncio.subprocess.STDOUT)
     result = await process.wait()
 
@@ -34,25 +44,26 @@ async def run_async_muted(*args, output_file=os.devnull):
 
 
 async def run_async_background(*args):
-    logging.info(' '.join(args))
+    logging.debug(' '.join(args))
     process = await asyncio.create_subprocess_exec(*args, stdout=open(os.devnull, 'wb'), stderr=asyncio.subprocess.STDOUT)
 
     return process
 
 
 async def run_async_output(*args):
-    logging.info(' '.join(args))
+    logging.debug(' '.join(args))
     process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     out, err = await process.communicate()
 
-    #logging.info(err)
+    if err:
+        raise ProcessRunError(args, err)
 
     return out
 
 
 async def run_async_shell(*args):
     cmd = ' '.join(args)
-    logging.info(cmd)
+    logging.debug(cmd)
     process = await asyncio.create_subprocess_shell(cmd, stdout=open(os.devnull, 'wb'), stderr=asyncio.subprocess.STDOUT)
     result = await process.wait()
 
