@@ -133,8 +133,10 @@ def _load_sancus_module(mod_dict, config):
 def _load_sgx_module(mod_dict, config):
     name = mod_dict['name']
     node = config.get_node(mod_dict['node'])
+    vendor_key = mod_dict['vendor_key']
+    settings = mod_dict['ra_settings']
 
-    return SGXModule(name, node)
+    return SGXModule(name, node, vendor_key, settings)
 
 
 def _load_nosgx_module(mod_dict, config):
@@ -261,6 +263,8 @@ def _(module):
         "type": "sgx",
         "name": module.name,
         "node": module.node.name,
+        "vendor_key": module.vendor_key,
+        "ra_settings": module.ra_settings,
         "id": module.id,
         "binary": _dump(module.binary),
         "sgxs": _dump(module.sgxs),

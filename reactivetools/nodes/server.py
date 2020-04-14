@@ -65,11 +65,10 @@ class ServerNode(Node):
         nonce = self.__get_nonce(module)
 
         # encrypting key
-        cmd = "cargo run --manifest-path={} {} {} {} {}".format(
-            glob.ENCRYPTOR, io_id, nonce, base64.b64encode(key).decode(),
-            base64.b64encode(await module.key).decode()
-        )
-        out = await tools.run_async_shell_output(cmd)
+        args = [str(io_id), str(nonce), base64.b64encode(key).decode(),
+            base64.b64encode(await module.key).decode()]
+
+        out = await tools.run_async_output(glob.ENCRYPTOR, *args)
 
         cipher = base64.b64decode(out)
 

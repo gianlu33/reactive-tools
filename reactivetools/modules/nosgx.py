@@ -124,9 +124,9 @@ class NoSGXModule(Module):
         await self.generate_code()
 
         cmd = glob.BUILD_APP.format(self.output)
-        await tools.run_async_shell(cmd)
+        await tools.run_async_muted(*cmd)
 
-        binary = "{}/target/debug/{}".format(self.output, self.name)
+        binary = "{}/target/{}/{}".format(self.output, glob.BUILD_MODE, self.name)
 
         logging.info("Built module {}".format(self.name))
         return binary

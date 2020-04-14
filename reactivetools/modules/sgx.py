@@ -18,20 +18,33 @@ class Error(Exception):
     pass
 
 
-async def _get_sp_key():
-    try:
-        async with aiofile.AIOFile(glob.RA_SP_PUB_KEY, "r") as f:
-            key = await f.read()
-    except:
-        raise Error("Failed to load ra_sp public key")
+async def _generate_sp_keys():
+    dir = tools.create_tmp_dir()
 
-    return key
+    priv = "{}/private_key.pem".format(dir)
+    pub = "{}/public_key.pem".format(dir)
+
+    cmd = "ssh-keygen"
+    args_private = "-t rsa -f {} -b 2048 -N ''".format(priv).split()
+    args_public = "-f {}.pub -e -m pem".format(priv).split()
+
+    await tools.run_async_shell(cmd, *args_private)
+    await tools.run_async_muted(cmd, *args_public, output_file=pub)
+
+    return pub, priv
+
+
+async def _run_ra_sp():
+    arg = await SGXModule._get_ra_sp_priv_key()
+
+    return await tools.run_async_background(glob.RA_SP, arg)
 
 
 class SGXModule(Module):
-    _sp_key_fut = asyncio.ensure_future(_get_sp_key())
+    _sp_keys_fut = asyncio.ensure_future(_generate_sp_keys())
+    _ra_sp_fut = asyncio.ensure_future(_run_ra_sp())
 
-    def __init__(self, name, node):
+    def __init__(self, name, node, vendor_key, ra_settings):
         self.__check_init_args(node)
 
         self.__deploy_fut = None
@@ -42,6 +55,8 @@ class SGXModule(Module):
 
         self.name = name
         self.node = node
+        self.vendor_key = vendor_key
+        self.ra_settings = ra_settings
         self.id = node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
@@ -91,6 +106,20 @@ class SGXModule(Module):
             clsname = lambda o: type(o).__name__
             raise Error('A {} cannot run on a {}'
                     .format(clsname(self), clsname(node)))
+
+
+    @staticmethod
+    async def _get_ra_sp_pub_key():
+        pub, _ = await SGXModule._sp_keys_fut
+
+        return pub
+
+
+    @staticmethod
+    async def _get_ra_sp_priv_key():
+        _, priv = await SGXModule._sp_keys_fut
+
+        return priv
 
 
     @staticmethod
@@ -146,7 +175,7 @@ class SGXModule(Module):
         args.key = None
         args.emport = self.node.deploy_port
         args.runner = "runner_sgx"
-        args.spkey = await self._sp_key_fut
+        args.spkey = await self._get_ra_sp_pub_key()
         args.print = None
 
 
@@ -157,10 +186,10 @@ class SGXModule(Module):
     async def __build(self):
         await self.generate_code()
 
-        cmd = glob.BUILD_SGX_APP.format(self.output)
-        await tools.run_async_shell(cmd)
+        cmd = glob.BUILD_SGX_APP.format(self.output).split()
+        await tools.run_async_muted(*cmd)
 
-        binary = "{}/target/{}/debug/{}".format(self.output, glob.SGX_TARGET, self.name)
+        binary = "{}/target/{}/{}/{}".format(self.output, glob.SGX_TARGET, glob.BUILD_MODE, self.name)
 
         logging.info("Built module {}".format(self.name))
 
@@ -173,11 +202,11 @@ class SGXModule(Module):
         sgxs = "{}.sgxs".format(binary)
         sig = "{}.sig".format(binary)
 
-        cmd_convert = glob.CONVERT_SGX.format(binary)
-        cmd_sign = glob.SIGN_SGX.format(sgxs, sig)
+        cmd_convert = glob.CONVERT_SGX.format(binary).split()
+        cmd_sign = glob.SIGN_SGX.format(self.vendor_key, sgxs, sig).split()
 
-        await tools.run_async_shell(cmd_convert)
-        await tools.run_async_shell(cmd_sign)
+        await tools.run_async_muted(*cmd_convert)
+        await tools.run_async_muted(*cmd_sign)
 
         logging.info("Converted & signed module {}".format(self.name))
 
@@ -186,15 +215,10 @@ class SGXModule(Module):
 
     async def __remote_attestation(self):
         await self.deploy()
-        
-        cmd = "cargo run --manifest-path={} {} {} {}".format(
-            glob.RA_CLIENT, self.node.ip_address, self.port, await self.sig)
-        await tools.run_async_shell(cmd)
+        await self._ra_sp_fut
 
-        await asyncio.sleep(1) # to let ra_sp write the key to file
-
-        async with aiofile.AIOFile("{}.key".format(await self.binary), "rb") as f:
-            key = await f.read()
+        args = [str(self.node.ip_address), str(self.port), self.ra_settings, await self.sig]
+        key = await tools.run_async_output(glob.RA_CLIENT, *args)
 
         logging.info("Done Remote Attestation of {}".format(self.name))
 
