@@ -51,7 +51,8 @@ class ServerNode(Node):
              to_module.name, to_input, self.name)
 
 
-    async def set_key(self, module, io_name, key, conn_io):
+    async def set_key(self, module, io_name, encryption, key, conn_io):
+        assert encryption in module.get_supported_encryption()
         await module.deploy()
 
         if conn_io == ConnectionIO.OUTPUT:
@@ -62,7 +63,7 @@ class ServerNode(Node):
         nonce = self.__get_nonce(module)
 
         # encrypting key
-        args = [str(io_id), str(nonce), base64.b64encode(key).decode(),
+        args = [str(encryption.value), str(io_id), str(nonce), base64.b64encode(key).decode(),
             base64.b64encode(await module.key).decode()]
 
         out = await tools.run_async_output(glob.ENCRYPTOR, *args)
@@ -71,6 +72,7 @@ class ServerNode(Node):
 
         payload =   self._pack_int(module.id)                + \
                     self._pack_int(_CallEntrypoint.SetKey)   + \
+                    self._pack_int8(encryption)              + \
                     self._pack_int(io_id)                    + \
                     self._pack_int(nonce)                    + \
                     cipher
@@ -146,6 +148,14 @@ class ServerNode(Node):
     @staticmethod
     def _unpack_int32(i):
         return struct.unpack('!i', i)[0]
+
+    @staticmethod
+    def _pack_int8(i):
+        return struct.pack('!B', i)
+
+    @staticmethod
+    def _unpack_int8(i):
+        return struct.unpack('!B', i)[0]
 
 
 class _ReactiveCommand(IntEnum):

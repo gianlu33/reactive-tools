@@ -8,6 +8,7 @@ from .base import Module
 from ..nodes import SGXNode
 from .. import tools
 from .. import glob
+from ..connection import Encryption
 
 import rustsgxgen
 from rustsgxgen import generator
@@ -151,6 +152,11 @@ class SGXModule(Module):
     @staticmethod
     def get_supported_node_type():
         return SGXNode
+
+
+    @staticmethod
+    def get_supported_encryption():
+        return [Encryption.AEAD, Encryption.SPONGENT]
 
 
     @staticmethod

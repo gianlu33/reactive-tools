@@ -12,7 +12,7 @@ import sancus.config
 
 from .nodes import SancusNode, SGXNode, NoSGXNode
 from .modules import SancusModule, SGXModule, NoSGXModule
-from .connection import Connection
+from .connection import Connection, Encryption
 from . import tools
 
 
@@ -174,16 +174,25 @@ def _load_connection(conn_dict, config):
     from_output = conn_dict['from_output']
     to_module = config.get_module(conn_dict['to_module'])
     to_input = conn_dict['to_input']
+    encryption = Encryption.from_str(conn_dict['encryption'])
 
     # Don't use dict.get() here because we don't want to call os.urandom() when
     # not strictly necessary.
     if 'key' in conn_dict:
         key = conn_dict['key']
     else:
-        key = tools.generate_key(16) # TODO different lengths for different connections (e.g sancus-sgx or sgx-sgx)
-         #os.urandom(sancus.config.SECURITY // 8)
+        key = _generate_key(from_module, to_module, encryption)
 
-    return Connection(from_module, from_output, to_module, to_input, key)
+    return Connection(from_module, from_output, to_module, to_input, encryption, key)
+
+
+def _generate_key(module1, module2, encryption):
+    if encryption not in module1.get_supported_encryption() or \
+       encryption not in module2.get_supported_encryption():
+       raise Error('Encryption "{}" not supported between {} and {}'.format(
+            encryption, module1.name, module2.name))
+
+    return tools.generate_key(encryption.get_key_size())
 
 
 def _parse_vendor_id(id):
@@ -331,6 +340,7 @@ def _(conn):
         "from_output": conn.from_output,
         "to_module": conn.to_module.name,
         "to_input": conn.to_input,
+        "encryption": conn.encryption.to_str(),
         "key": _dump(conn.key)
     }
 

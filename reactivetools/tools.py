@@ -15,6 +15,10 @@ class ProcessRunError(Exception):
                     .format(' '.join(self.args), self.result)
 
 
+class Error(Exception):
+    pass
+
+
 def init_future(*results):
     if all(map(lambda x: x is None, results)):
         return None
@@ -51,12 +55,13 @@ async def run_async_background(*args):
 
 
 async def run_async_output(*args):
-    logging.debug(' '.join(args))
+    cmd = ' '.join(args)
+    logging.debug(cmd)
     process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     out, err = await process.communicate()
 
     if err:
-        raise ProcessRunError(args, err)
+        raise Error('cmd "{}" error: {}'.format(cmd, err))
 
     return out
 
@@ -81,6 +86,5 @@ def create_tmp_dir():
     return tempfile.mkdtemp()
 
 
-# just used for NoSGX modules, so for testing
 def generate_key(length):
     return os.urandom(length)

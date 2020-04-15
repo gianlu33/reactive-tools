@@ -11,6 +11,7 @@ import sancus.crypto
 from .base import Module
 from ..nodes import SancusNode
 from .. import tools
+from ..connection import Encryption
 
 
 class Error(Exception):
@@ -153,6 +154,10 @@ class SancusModule(Module):
     @staticmethod
     def get_supported_node_type():
         return SancusNode
+
+    @staticmethod
+    def get_supported_encryption():
+        return [Encryption.SPONGENT]
 
     @staticmethod
     def _get_build_config(verbosity):

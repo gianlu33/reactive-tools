@@ -81,7 +81,9 @@ class SancusNode(Node):
                      to_module.name, to_input,
                      self.name))
 
-    async def set_key(self, module, io_name, key, conn_io = None):
+    async def set_key(self, module, io_name, encryption, key, conn_io = None):
+        assert encryption in module.get_supported_encryption()
+        
         module_id, module_key, io_id = await asyncio.gather(
                                module.id, module.key, module.get_io_id(io_name))
 
