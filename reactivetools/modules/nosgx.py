@@ -9,9 +9,6 @@ from .. import tools
 from .. import glob
 from ..connection import Encryption
 
-import rustsgxgen
-from rustsgxgen import generator
-
 class Object():
     pass
 
@@ -156,6 +153,11 @@ class NoSGXModule(Module):
 
 
     async def __generate_code(self):
+        try:
+            import rustsgxgen
+        except:
+            raise Error("rust-sgx-gen not installed! Check README.md")
+
         args = Object()
 
         args.input = self.name
@@ -167,7 +169,7 @@ class NoSGXModule(Module):
         args.spkey = None
         args.print = None
 
-        inputs, outputs, entrypoints = generator.generate(args)
+        inputs, outputs, entrypoints = rustsgxgen.generate(args)
         logging.info("Generated code for module {}".format(self.name))
 
         return inputs, outputs, entrypoints

@@ -6,8 +6,6 @@ from collections import namedtuple
 
 from elftools.elf import elffile
 
-import sancus.crypto
-
 from .base import Module
 from ..nodes import SancusNode
 from .. import tools
@@ -117,6 +115,11 @@ class SancusModule(Module):
         return await self.__deploy_fut
 
     async def _calculate_key(self):
+        try:
+            import sancus.crypto
+        except:
+            raise Error("Sancus python lib not installed! Check README.md")
+
         linked_binary = await self.__link()
 
         with open(linked_binary, 'rb') as f:

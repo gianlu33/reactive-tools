@@ -3,7 +3,7 @@ import asyncio
 import logging
 from enum import IntEnum
 
-import sancus.config
+from . import tools
 
 class Error(Exception):
     pass
@@ -58,4 +58,4 @@ class Encryption(IntEnum):
         if self == Encryption.AEAD:
             return 16
         if self == Encryption.SPONGENT:
-            return sancus.config.SECURITY // 8
+            return tools.get_sancus_key_size()

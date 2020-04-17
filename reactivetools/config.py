@@ -8,8 +8,6 @@ import functools
 import binascii
 import types
 
-import sancus.config
-
 from .nodes import SancusNode, SGXNode, NoSGXNode
 from .modules import SancusModule, SGXModule, NoSGXModule
 from .connection import Connection, Encryption
@@ -205,8 +203,10 @@ def _parse_vendor_id(id):
 def _parse_vendor_key(key_str):
     key = binascii.unhexlify(key_str)
 
-    if len(key) != sancus.config.SECURITY // 8:
-        raise Error('Keys should be {} bit'.format(sancus.config.SECURITY))
+    keysize = tools.get_sancus_key_size()
+
+    if len(key) != keysize // 8:
+        raise Error('Keys should be {} bit'.format(keysize))
 
     return key
 

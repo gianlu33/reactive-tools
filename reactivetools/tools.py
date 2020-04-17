@@ -88,3 +88,12 @@ def create_tmp_dir():
 
 def generate_key(length):
     return os.urandom(length)
+
+
+def get_sancus_key_size():
+    try:
+        import sancus.config
+    except:
+        raise Error("Sancus python lib not installed! Check README.md")
+
+    return sancus.config.SECURITY
