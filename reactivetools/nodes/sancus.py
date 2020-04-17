@@ -16,12 +16,10 @@ class Error(Exception):
 class SancusNode(Node):
     def __init__(self, name, vendor_id, vendor_key,
                  ip_address, deploy_port=2000, reactive_port=2001):
-        self.name = name
+        super().__init__(name, ip_address, reactive_port, deploy_port)
+
         self.vendor_id = vendor_id
         self.vendor_key = vendor_key
-        self.ip_address = ip_address
-        self.deploy_port = deploy_port
-        self.reactive_port = reactive_port
         self.__nonces = collections.Counter()
 
         # Our Contiki implementation does not support *any* concurrent
@@ -31,6 +29,8 @@ class SancusNode(Node):
         self.__lock = asyncio.Lock()
 
     async def deploy(self, module):
+        assert module.node is self
+
         packet = await self.__create_install_packet(module)
 
         async with self.__lock:
@@ -60,10 +60,10 @@ class SancusNode(Node):
     async def connect(self, from_module, from_output, to_module, to_input):
         assert from_module.node is self
 
-        results = await asyncio.gather(from_module.id,
-                                       from_module.get_io_id(from_output),
-                                       to_module.id,
-                                       to_module.get_io_id(to_input))
+        results = await asyncio.gather(from_module.get_id(),
+                                       from_module.get_output_id(from_output),
+                                       to_module.get_id(),
+                                       to_module.get_input_id(to_input))
         from_module_id, from_output_id, to_module_id, to_input_id = results
 
         payload = self.__pack_int(from_module_id)   + \
@@ -79,7 +79,8 @@ class SancusNode(Node):
                      to_module.name, to_input,
                      self.name))
 
-    async def set_key(self, module, io_name, encryption, key, conn_io = None):
+    async def set_key(self, module, io_name, encryption, key, conn_io):
+        assert module.node is self
         assert encryption in module.get_supported_encryption()
 
         try:
@@ -122,6 +123,8 @@ class SancusNode(Node):
             raise Error('Got error code from module: {}'.format(set_key_code))
 
     async def call(self, module, entry, arg=None):
+        assert module.node is self
+
         module_id, entry_id = \
             await asyncio.gather(module.id, module.get_entry_id(entry))
         payload = self.__pack_int(module_id) + \

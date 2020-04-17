@@ -19,18 +19,20 @@ class Error(Exception):
 class SancusModule(Module):
     def __init__(self, name, files, cflags, ldflags, node,
                  binary=None, id=None, symtab=None, key=None):
+        super().__init__(name, node)
 
         self.__check_init_args(node, binary, id, symtab, key)
 
-        self.name = name
         self.files = files
         self.cflags = cflags
         self.ldflags = ldflags
-        self.node = node
 
         self.__build_fut = tools.init_future(binary)
         self.__deploy_fut = tools.init_future(id, symtab)
         self.__key_fut = tools.init_future(key)
+
+
+    # --- Properties --- #
 
     @property
     async def binary(self):
@@ -56,14 +58,70 @@ class SancusModule(Module):
 
         return await self.__key_fut
 
-    async def get_io_id(self, io_name):
-        return await self._get_io_id(io_name)
 
-    async def get_entry_id(self, entry_name):
-        return await self._get_entry_id(entry_name)
+    # --- Implement abstract methods --- #
+
+    async def deploy(self):
+        if self.__deploy_fut is None:
+            self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
+
+        return await self.__deploy_fut
+
 
     async def call(self, entry, arg=None):
         return await self.node.call(self, entry, arg)
+
+
+    async def get_id(self):
+        return await self.id
+
+
+    async def get_input_id(self, input):
+        return await self.get_io_id(input)
+
+
+    async def get_output_id(self, output):
+        return await self.get_io_id(output)
+
+
+    async def get_entry_id(self, entry):
+        return await self._get_entry_id(entry)
+
+
+    async def get_key(self):
+        return await self.key
+
+
+    @staticmethod
+    def get_supported_node_type():
+        return SancusNode
+
+
+    @staticmethod
+    def get_supported_encryption():
+        return [Encryption.SPONGENT]
+
+
+    # --- Static methods --- #
+
+    @staticmethod
+    def _get_build_config(verbosity):
+        if verbosity == _Verbosity.Debug:
+            flags = ['--debug']
+        # elif verbosity == _Verbosity.Verbose:
+        #     flags = ['--verbose']
+        else:
+            flags = []
+
+        return _BuildConfig(cc='sancus-cc', cflags=flags,
+                            ld='sancus-ld', ldflags=flags)
+
+
+    # --- Others --- #
+
+    async def get_io_id(self, io_name):
+        return await self._get_io_id(io_name)
+
 
     def __check_init_args(self, node, binary, id, symtab, key):
         if not isinstance(node, self.get_supported_node_type()):
@@ -79,15 +137,6 @@ class SancusModule(Module):
             raise Error('Either all of the optional node parameters '
                         'should be given or none')
 
-    @staticmethod
-    def __init_future(*results):
-        if all(map(lambda x: x is None, results)):
-            return None
-
-        fut = asyncio.Future()
-        result = results[0] if len(results) == 1 else results
-        fut.set_result(result)
-        return fut
 
     async def __build(self):
         logging.info('Building module %s from %s',
@@ -108,11 +157,7 @@ class SancusModule(Module):
                               '-o', binary, *objects.values())
         return binary
 
-    async def deploy(self):
-        if self.__deploy_fut is None:
-            self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
 
-        return await self.__deploy_fut
 
     async def _calculate_key(self):
         try:
@@ -128,11 +173,13 @@ class SancusModule(Module):
                          self.name, binascii.hexlify(key).decode('ascii'))
             return key
 
+
     async def __link(self):
         linked_binary = tools.create_tmp(suffix='.elf')
         await tools.run_async('msp430-ld', '-T', await self.symtab,
                               '-o', linked_binary, await self.binary)
         return linked_binary
+
 
     async def _get_io_id(self, io_name):
         sym_name = '__sm_{}_io_{}_idx'.format(self.name, io_name)
@@ -144,6 +191,7 @@ class SancusModule(Module):
 
         return symbol
 
+
     async def _get_entry_id(self, entry_name):
         sym_name = '__sm_{}_entry_{}_idx'.format(self.name, entry_name)
         symbol = await self.__get_symbol(sym_name)
@@ -154,25 +202,6 @@ class SancusModule(Module):
 
         return symbol
 
-    @staticmethod
-    def get_supported_node_type():
-        return SancusNode
-
-    @staticmethod
-    def get_supported_encryption():
-        return [Encryption.SPONGENT]
-
-    @staticmethod
-    def _get_build_config(verbosity):
-        if verbosity == _Verbosity.Debug:
-            flags = ['--debug']
-        # elif verbosity == _Verbosity.Verbose:
-        #     flags = ['--verbose']
-        else:
-            flags = []
-
-        return _BuildConfig(cc='sancus-cc', cflags=flags,
-                            ld='sancus-ld', ldflags=flags)
 
     async def __get_symbol(self, name):
         with open(await self.binary, 'rb') as f:

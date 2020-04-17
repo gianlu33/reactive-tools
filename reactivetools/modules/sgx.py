@@ -46,6 +46,8 @@ class SGXModule(Module):
     def __init__(self, name, node, vendor_key, ra_settings, id=None, binary=None,
                     key=None, sgxs=None, signature=None, inputs=None,
                     outputs=None, entrypoints=None):
+        super().__init__(name, node)
+
         self.__check_init_args(node, id, binary, key, sgxs, signature, inputs, outputs, entrypoints)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
@@ -54,14 +56,14 @@ class SGXModule(Module):
         self.__convert_sign_fut = tools.init_future(sgxs, signature)
         self.__ra_fut = tools.init_future(key)
 
-        self.name = name
-        self.node = node
         self.vendor_key = vendor_key
         self.ra_settings = ra_settings
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
 
+
+    # --- Properties --- #
 
     @property
     async def inputs(self):
@@ -117,57 +119,21 @@ class SGXModule(Module):
         return sig
 
 
-    def __check_init_args(self, node, id, binary, key, sgxs, signature, inputs, outputs, entrypoints):
-        if not isinstance(node, self.get_supported_node_type()):
-            clsname = lambda o: type(o).__name__
-            raise Error('A {} cannot run on a {}'
-                    .format(clsname(self), clsname(node)))
-
-        # For now, either all optionals should be given or none. This might be
-        # relaxed later if necessary.
-        optionals = (id, binary, key, sgxs, signature, inputs, outputs, entrypoints)
-
-        if None in optionals and any(map(lambda x: x is not None, optionals)):
-            raise Error('Either all of the optional node parameters '
-                        'should be given or none')
-
-
-    @staticmethod
-    async def _get_ra_sp_pub_key():
-        pub, _ = await SGXModule._sp_keys_fut
-
-        return pub
-
-
-    @staticmethod
-    async def _get_ra_sp_priv_key():
-        _, priv = await SGXModule._sp_keys_fut
-
-        return priv
-
-
-    @staticmethod
-    def get_supported_node_type():
-        return SGXNode
-
-
-    @staticmethod
-    def get_supported_encryption():
-        return [Encryption.AEAD, Encryption.SPONGENT]
-
-
-    @staticmethod
-    async def kill_ra_sp():
-        process = await SGXModule._ra_sp_fut
-        try:
-            process.kill()
-            await asyncio.sleep(0.1) # to avoid weird error messages
-        except:
-            pass
-
+    # --- Implement abstract methods --- #
 
     async def call(self, entry, arg=None):
         return await self.node.call(self, entry, arg)
+
+
+    async def deploy(self):
+        if self.__deploy_fut is None:
+            self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
+
+        await self.__deploy_fut
+
+
+    async def get_id(self):
+        return self.id
 
 
     async def get_input_id(self, input):
@@ -197,16 +163,63 @@ class SGXModule(Module):
         return entrypoints[entry]
 
 
-    async def deploy(self):
-        if self.__deploy_fut is None:
-            self.__deploy_fut = asyncio.ensure_future(self.__deploy())
-
-        await self.__deploy_fut
+    async def get_key(self):
+        return await self.key
 
 
-    async def __deploy(self):
-        await self.node.deploy(self)
+    @staticmethod
+    def get_supported_node_type():
+        return SGXNode
 
+
+    @staticmethod
+    def get_supported_encryption():
+        return [Encryption.AEAD, Encryption.SPONGENT]
+
+
+    # --- Static methods --- #
+
+    @staticmethod
+    async def _get_ra_sp_pub_key():
+        pub, _ = await SGXModule._sp_keys_fut
+
+        return pub
+
+
+    @staticmethod
+    async def _get_ra_sp_priv_key():
+        _, priv = await SGXModule._sp_keys_fut
+
+        return priv
+
+
+
+    @staticmethod
+    async def kill_ra_sp():
+        process = await SGXModule._ra_sp_fut
+        try:
+            process.kill()
+            await asyncio.sleep(0.1) # to avoid weird error messages
+        except:
+            pass
+
+
+    # --- Others --- #
+
+    def __check_init_args(self, node, id, binary, key, sgxs, signature, inputs, outputs, entrypoints):
+        if not isinstance(node, self.get_supported_node_type()):
+            clsname = lambda o: type(o).__name__
+            raise Error('A {} cannot run on a {}'
+                    .format(clsname(self), clsname(node)))
+
+        # For now, either all optionals should be given or none. This might be
+        # relaxed later if necessary.
+        optionals = (id, binary, key, sgxs, signature, inputs, outputs, entrypoints)
+
+        if None in optionals and any(map(lambda x: x is not None, optionals)):
+            raise Error('Either all of the optional node parameters '
+                        'should be given or none')
+                        
 
     async def generate_code(self):
         if self.__generate_fut is None:

@@ -19,6 +19,8 @@ class Error(Exception):
 class NoSGXModule(Module):
     def __init__(self, name, node, id=None, binary=None, key=None, inputs=None,
                     outputs=None, entrypoints=None):
+        super().__init__(name, node)
+
         self.__check_init_args(node, id, binary, key, inputs, outputs, entrypoints)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
@@ -26,12 +28,11 @@ class NoSGXModule(Module):
         self.__build_fut = tools.init_future(binary)
         self.__gen_key_fut = tools.init_future(key)
 
-        self.name = name
-        self.node = node
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
 
+    # --- Properties --- #
 
     @property
     async def inputs(self):
@@ -67,44 +68,21 @@ class NoSGXModule(Module):
         return await self.__build_fut
 
 
-    def __check_init_args(self, node, id, binary, key, inputs, outputs, entrypoints):
-        if not isinstance(node, self.get_supported_node_type()):
-            clsname = lambda o: type(o).__name__
-            raise Error('A {} cannot run on a {}'
-                    .format(clsname(self), clsname(node)))
+    # --- Implement abstract methods --- #
 
-        # For now, either all optionals should be given or none. This might be
-        # relaxed later if necessary.
-        optionals = (id, binary, key, inputs, outputs, entrypoints)
+    async def deploy(self):
+        if self.__deploy_fut is None:
+            self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
 
-        if None in optionals and any(map(lambda x: x is not None, optionals)):
-            raise Error('Either all of the optional node parameters '
-                        'should be given or none')
-
-
-    @staticmethod
-    def __init_future(*results):
-        if all(map(lambda x: x is None, results)):
-            return None
-
-        fut = asyncio.Future()
-        result = results[0] if len(results) == 1 else results
-        fut.set_result(result)
-        return fut
-
-
-    @staticmethod
-    def get_supported_node_type():
-        return NoSGXNode
-
-
-    @staticmethod
-    def get_supported_encryption():
-        return [Encryption.AEAD, Encryption.SPONGENT]
+        await self.__deploy_fut
 
 
     async def call(self, entry, arg=None):
         return await self.node.call(self, entry, arg)
+
+
+    async def get_id(self):
+        return self.id
 
 
     async def get_input_id(self, input):
@@ -134,15 +112,37 @@ class NoSGXModule(Module):
         return entrypoints[entry]
 
 
-    async def deploy(self):
-        if self.__deploy_fut is None:
-            self.__deploy_fut = asyncio.ensure_future(self.__deploy())
-
-        await self.__deploy_fut
+    async def get_key(self):
+        return await self.key
 
 
-    async def __deploy(self):
-        await self.node.deploy(self)
+    @staticmethod
+    def get_supported_node_type():
+        return NoSGXNode
+
+
+    @staticmethod
+    def get_supported_encryption():
+        return [Encryption.AEAD, Encryption.SPONGENT]
+
+
+    # --- Static methods --- #
+
+    # --- Others --- #
+
+    def __check_init_args(self, node, id, binary, key, inputs, outputs, entrypoints):
+        if not isinstance(node, self.get_supported_node_type()):
+            clsname = lambda o: type(o).__name__
+            raise Error('A {} cannot run on a {}'
+                    .format(clsname(self), clsname(node)))
+
+        # For now, either all optionals should be given or none. This might be
+        # relaxed later if necessary.
+        optionals = (id, binary, key, inputs, outputs, entrypoints)
+
+        if None in optionals and any(map(lambda x: x is not None, optionals)):
+            raise Error('Either all of the optional node parameters '
+                        'should be given or none')
 
 
     async def generate_code(self):

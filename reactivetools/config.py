@@ -104,17 +104,19 @@ def _load_sancus_node(node_dict):
 def _load_sgx_node(node_dict):
     name = node_dict['name']
     ip_address = ipaddress.ip_address(node_dict['ip_address'])
-    em_port = node_dict['em_port']
+    reactive_port = node_dict['reactive_port']
+    deploy_port = node_dict.get('deploy_port', reactive_port)
 
-    return SGXNode(name, ip_address, em_port)
+    return SGXNode(name, ip_address, reactive_port, deploy_port)
 
 
 def _load_nosgx_node(node_dict):
     name = node_dict['name']
     ip_address = ipaddress.ip_address(node_dict['ip_address'])
-    em_port = node_dict['em_port']
+    reactive_port = node_dict['reactive_port']
+    deploy_port = node_dict.get('deploy_port', reactive_port)
 
-    return NoSGXNode(name, ip_address, em_port)
+    return NoSGXNode(name, ip_address, reactive_port, deploy_port)
 
 
 def _load_module(mod_dict, config):

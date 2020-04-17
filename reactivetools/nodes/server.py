@@ -17,15 +17,8 @@ class Error(Exception):
 
 
 class ServerNode(Node):
-    def __init__(self, name, ip_address, deploy_port, reactive_port=None):
-        self.name = name
-        self.ip_address = ip_address
-        self.deploy_port = deploy_port
-
-        if reactive_port is None:
-            self.reactive_port = deploy_port
-        else:
-            self.reactive_port = reactive_port
+    def __init__(self, name, ip_address, reactive_port, deploy_port):
+        super().__init__(name, ip_address, reactive_port, deploy_port)
 
         self.__nonces = collections.Counter()
         self.__moduleid = 1
@@ -39,11 +32,18 @@ class ServerNode(Node):
     async def connect(self, from_module, from_output, to_module, to_input):
         assert from_module.node is self
 
-        payload = self._pack_int(from_module.id)   + \
-                  self._pack_int(await from_module.get_output_id(from_output))   + \
-                  self._pack_int(to_module.id)     + \
-                  self._pack_int(await to_module.get_input_id(to_input))     + \
-                  self._pack_int(to_module.node.reactive_port)     + \
+        results = await asyncio.gather(from_module.get_id(),
+                                       from_module.get_output_id(from_output),
+                                       to_module.get_id(),
+                                       to_module.get_input_id(to_input))
+
+        from_module_id, from_output_id, to_module_id, to_input_id = results
+
+        payload = self._pack_int(from_module_id)                    + \
+                  self._pack_int(from_output_id)                    + \
+                  self._pack_int(to_module_id)                      + \
+                  self._pack_int(to_input_id)                       + \
+                  self._pack_int(to_module.node.reactive_port)      + \
                   to_module.node.ip_address.packed
 
         await self._send_reactive_command(payload, _ReactiveCommand.Connect)
@@ -52,6 +52,7 @@ class ServerNode(Node):
 
 
     async def set_key(self, module, io_name, encryption, key, conn_io):
+        assert module.node is self
         assert encryption in module.get_supported_encryption()
         await module.deploy()
 
@@ -82,6 +83,7 @@ class ServerNode(Node):
 
 
     async def call(self, module, entry, arg=None):
+        assert module.node is self
         module_id = module.id
         entry_id = await module.get_entry_id(entry)
 
