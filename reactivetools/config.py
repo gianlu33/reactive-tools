@@ -95,10 +95,11 @@ def _load_sancus_node(node_dict):
     vendor_id = _parse_vendor_id(node_dict['vendor_id'])
     vendor_key = _parse_vendor_key(node_dict['vendor_key'])
     ip_address = ipaddress.ip_address(node_dict['ip_address'])
-    deploy_port = node_dict.get('deploy_port', 2000)
-    reactive_port = node_dict.get('reactive_port', 2001)
+    reactive_port = node_dict['reactive_port']
+    deploy_port = node_dict.get('deploy_port', reactive_port)
+
     return SancusNode(name, vendor_id, vendor_key,
-                      ip_address, deploy_port, reactive_port)
+                      ip_address, reactive_port, deploy_port)
 
 
 def _load_sgx_node(node_dict):
@@ -263,7 +264,9 @@ def _(node):
         "name": node.name,
         "ip_address": str(node.ip_address),
         "vendor_id": node.vendor_id,
-        "vendor_key": _dump(node.vendor_key)
+        "vendor_key": _dump(node.vendor_key),
+        "reactive_port": node.reactive_port,
+        "deploy_port": node.deploy_port
     }
 
 
@@ -287,7 +290,8 @@ def _(node):
         "type": "sgx",
         "name": node.name,
         "ip_address": str(node.ip_address),
-        "em_port": node.deploy_port
+        "reactive_port": node.reactive_port,
+        "deploy_port": node.deploy_port
     }
 
 
@@ -316,7 +320,8 @@ def _(node):
         "type": "nosgx",
         "name": node.name,
         "ip_address": str(node.ip_address),
-        "em_port": node.deploy_port
+        "reactive_port": node.reactive_port,
+        "deploy_port": node.deploy_port
     }
 
 

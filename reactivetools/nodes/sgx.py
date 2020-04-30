@@ -1,10 +1,10 @@
 import asyncio
-import collections
-import logging
 import aiofile
 
-from .sgxbase import SGXBase, Error
-from .base import ReactiveCommand
+from reactivenet import Message, CommandMessage, ReactiveCommand
+
+from .sgxbase import SGXBase
+from .. import tools
 
 
 class SGXNode(SGXBase):
@@ -16,11 +16,18 @@ class SGXNode(SGXBase):
             sig = await f.read()
 
 
-        payload =   self._pack_int16(_ReactiveCommand.Load)         + \
-                    self._pack_int32(len(sgxs))                     + \
+        payload =   tools.pack_int16(_ReactiveCommand.Load)         + \
+                    tools.pack_int32(len(sgxs))                     + \
                     sgxs                                            + \
-                    self._pack_int32(len(sig))                      + \
+                    tools.pack_int32(len(sig))                      + \
                     sig
 
-        await self._send_reactive_command(payload=payload)
-        logging.info("Sent {} to {}".format(module.name, self.name))
+        command = CommandMessage(ReactiveCommand.Load,
+                                Message.new(payload),
+                                self.ip_address,
+                                self.deploy_port)
+
+        await self._send_reactive_command(
+            command,
+            log='Deploying {} on {}'.format(module.name, self.name)
+            )

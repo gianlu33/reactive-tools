@@ -1,14 +1,12 @@
 import asyncio
-import collections
 import logging
 from abc import ABC, abstractmethod
-import struct
-from enum import IntEnum
 import base64
 import contextlib
 
-from .base import Node, ReactiveCommand, ReactiveResultCode, ReactiveResult
+from reactivenet import *
 
+from .base import Node
 from ..connection import ConnectionIO
 from .. import glob
 from .. import tools
@@ -21,7 +19,6 @@ class SGXBase(Node):
     def __init__(self, name, ip_address, reactive_port, deploy_port):
         super().__init__(name, ip_address, reactive_port, deploy_port)
 
-        self.__nonces = collections.Counter()
         self.__moduleid = 1
 
 
@@ -40,16 +37,25 @@ class SGXBase(Node):
 
         from_module_id, from_output_id, to_module_id, to_input_id = results
 
-        payload = self._pack_int16(from_module_id)                    + \
-                  self._pack_int16(from_output_id)                    + \
-                  self._pack_int16(to_module_id)                      + \
-                  self._pack_int16(to_input_id)                       + \
-                  self._pack_int16(to_module.node.reactive_port)      + \
+        payload = tools.pack_int16(from_module_id)                    + \
+                  tools.pack_int16(from_output_id)                    + \
+                  tools.pack_int16(to_module_id)                      + \
+                  tools.pack_int16(to_input_id)                       + \
+                  tools.pack_int16(to_module.node.reactive_port)      + \
                   to_module.node.ip_address.packed
 
-        await self._send_reactive_command(payload, ReactiveCommand.Connect)
-        logging.info('Connected %s:%s to %s:%s on %s', from_module.name, from_output,
-             to_module.name, to_input, self.name)
+        command = CommandMessage(ReactiveCommand.Connect,
+                                Message.new(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Connecting {}:{} to {}:{} on {}'.format(
+                 from_module.name, from_output,
+                 to_module.name, to_input,
+                 self.name)
+                )
 
 
     async def set_key(self, module, io_name, encryption, key, conn_io):
@@ -72,15 +78,22 @@ class SGXBase(Node):
 
         cipher = base64.b64decode(out)
 
-        payload =   self._pack_int16(module.id)                + \
-                    self._pack_int16(_CallEntrypoint.SetKey)   + \
-                    self._pack_int8(encryption)                + \
-                    self._pack_int16(io_id)                    + \
-                    self._pack_int16(nonce)                    + \
+        payload =   tools.pack_int16(module.id)                     + \
+                    tools.pack_int16(ReactiveEntrypoint.SetKey)     + \
+                    tools.pack_int8(encryption)                     + \
+                    tools.pack_int16(io_id)                         + \
+                    tools.pack_int16(nonce)                         + \
                     cipher
 
-        await self._send_reactive_command(payload, ReactiveCommand.Call)
-        logging.info("Set the key of {}:{}".format(module.name, io_name))
+        command = CommandMessage(ReactiveCommand.Call,
+                                Message.new(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log="Set the key of {}:{}".format(module.name, io_name)
+                )
 
 
     async def call(self, module, entry, arg=None):
@@ -88,12 +101,20 @@ class SGXBase(Node):
         module_id = module.id
         entry_id = await module.get_entry_id(entry)
 
-        payload = self._pack_int16(module_id)       + \
-                  self._pack_int16(entry_id)        + \
+        payload = tools.pack_int16(module_id)       + \
+                  tools.pack_int16(entry_id)        + \
                   (b'' if arg is None else arg)
 
-        await self._send_reactive_command(payload, ReactiveCommand.Call)
-        logging.info("Sent call to {}:{} ({}:{}) on {}".format(module.name, entry, module_id, entry_id, self.name))
+        command = CommandMessage(ReactiveCommand.Call,
+                                Message.new(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Sending call command to {}:{} ({}:{}) on {}'.format(
+                     module.name, entry, module_id, entry_id, self.name)
+                )
 
 
     def get_module_id(self):
@@ -101,36 +122,3 @@ class SGXBase(Node):
         self.__moduleid += 1
 
         return id
-
-
-    async def _send_reactive_command(self, payload, command=None, result_len=0):
-        if command is not None:
-            packet = self.__create_reactive_packet(command, payload)
-        else:
-            packet = payload
-
-        reader, writer = await asyncio.open_connection(str(self.ip_address),
-                                                       self.reactive_port)
-
-        with contextlib.closing(writer):
-            writer.write(packet)
-            raw_result = await reader.readexactly(result_len + 1)
-            code = ReactiveResultCode(raw_result[0])
-
-            if code != ReactiveResultCode.Ok:
-                raise Error('Reactive command {} failed with code {}'
-                                .format(command, code))
-
-            return ReactiveResult(code, raw_result[1:])
-
-
-    def __create_reactive_packet(self, command, payload):
-        return self._pack_int16(command)      + \
-               self._pack_int16(len(payload)) + \
-               payload
-
-
-    def __get_nonce(self, module):
-        nonce = self.__nonces[module]
-        self.__nonces[module] += 1
-        return nonce

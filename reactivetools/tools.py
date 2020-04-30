@@ -3,7 +3,7 @@ import tempfile
 import os
 import asyncio
 import base64
-
+import struct
 
 class ProcessRunError(Exception):
     def __init__(self, args, result):
@@ -97,3 +97,22 @@ def get_sancus_key_size():
         raise Error("Sancus python lib not installed! Check README.md")
 
     return sancus.config.SECURITY
+
+
+def pack_int8(i):
+    return struct.pack('!B', i)
+
+def unpack_int8(i):
+    return struct.unpack('!B', i)[0]
+
+def pack_int16(i):
+    return struct.pack('!H', i)
+
+def unpack_int16(i):
+    return struct.unpack('!H', i)[0]
+
+def pack_int32(i):
+    return struct.pack('!i', i)
+
+def unpack_int32(i):
+    return struct.unpack('!i', i)[0]

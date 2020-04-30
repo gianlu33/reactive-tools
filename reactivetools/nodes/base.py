@@ -1,15 +1,24 @@
 import asyncio
 import struct
+import collections
+import logging
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
 
 class Node(ABC):
-    def __init__(self, name, ip_address, reactive_port, deploy_port):
+    def __init__(self, name, ip_address, reactive_port, deploy_port, need_lock=False):
         self.name = name
         self.ip_address = ip_address
         self.reactive_port = reactive_port
         self.deploy_port = deploy_port
+
+        self.__nonces = collections.Counter()
+
+        if need_lock:
+            self.__lock = asyncio.Lock()
+        else:
+            self.__lock = None
 
     @abstractmethod
     async def deploy(self, module):
@@ -27,56 +36,33 @@ class Node(ABC):
     async def call(self, module, entry, arg=None):
         pass
 
-    @staticmethod
-    def _pack_int16(i):
-        return struct.pack('!H', i)
 
-    @staticmethod
-    def _unpack_int16(i):
-        return struct.unpack('!H', i)[0]
+    async def _send_reactive_command(self, command, log=None):
+        if self.__lock is not None:
+            async with self.__lock:
+                return await self.__send_reactive_command(command, log)
+        else:
+            return await self.__send_reactive_command(command, log)
 
-    @staticmethod
-    def _pack_int32(i):
-        return struct.pack('!i', i)
 
     @staticmethod
-    def _unpack_int32(i):
-        return struct.unpack('!i', i)[0]
+    async def __send_reactive_command(command, log):
+        if log is not None:
+            logging.info(log)
 
-    @staticmethod
-    def _pack_int8(i):
-        return struct.pack('!B', i)
+        if command.has_response():
+            response =  await command.send_wait()
+            if not response.ok():
+                raise Error('Reactive command {} failed with code {}'
+                                .format(command.code, response.code))
+            return response
 
-    @staticmethod
-    def _unpack_int8(i):
-        return struct.unpack('!B', i)[0]
-
-
-class ReactiveCommand(IntEnum):
-    Connect             = 0x0
-    Call                = 0x1
-    RemoteOutput        = 0x2
-    Load                = 0x3
-    Ping                = 0x4
-    Output              = 0x5 # called by software modules in SGX and NoSGX
+        else:
+            await command.send()
+            return None
 
 
-class ReactiveResultCode(IntEnum):
-    Ok                  = 0x0
-    IllegalCommand      = 0x1
-    IllegalPayload      = 0x2
-    InternalError       = 0x3
-    BadRequest          = 0x4
-    CryptoError         = 0x5
-    GenericError        = 0x6
-
-
-class ReactiveEntrypoint(IntEnum):
-    SetKey              = 0x0
-    HandleInput         = 0x1
-
-
-class ReactiveResult:
-    def __init__(self, code, payload=bytearray()):
-        self.code = code
-        self.payload = payload
+    def _get_nonce(self, module):
+        nonce = self.__nonces[module]
+        self.__nonces[module] += 1
+        return nonce
