@@ -1,12 +1,10 @@
 import asyncio
-import struct
 import contextlib
 import collections
 import logging
 import binascii
-from enum import IntEnum
 
-from .base import Node
+from .base import Node, ReactiveCommand, ReactiveResultCode, ReactiveResult, ReactiveEntrypoint
 from .. import tools
 
 
@@ -42,7 +40,7 @@ class SancusNode(Node):
             # TODO is the connection properly closed by closing the writer?
             with contextlib.closing(writer):
                 writer.write(packet)
-                sm_id = self.__unpack_int(await reader.read(2))
+                sm_id = self._unpack_int16(await reader.read(2))
 
                 if sm_id == 0:
                     raise Error('Deploying {} on {} failed'
@@ -66,14 +64,14 @@ class SancusNode(Node):
                                        to_module.get_input_id(to_input))
         from_module_id, from_output_id, to_module_id, to_input_id = results
 
-        payload = self.__pack_int(from_module_id)   + \
-                  self.__pack_int(from_output_id)   + \
-                  self.__pack_int(to_module_id)     + \
-                  to_module.node.ip_address.packed  + \
-                  self.__pack_int(to_input_id)
+        payload = self._pack_int16(from_module_id)      + \
+                  self._pack_int16(from_output_id)      + \
+                  self._pack_int16(to_module_id)        + \
+                  to_module.node.ip_address.packed      + \
+                  self._pack_int16(to_input_id)
 
         await self.__send_reactive_command(
-                _ReactiveCommand.Connect, payload,
+                ReactiveCommand.Connect, payload,
                 log=('Connecting %s:%s to %s:%s on %s',
                      from_module.name, from_output,
                      to_module.name, to_input,
@@ -91,27 +89,27 @@ class SancusNode(Node):
         module_id, module_key, io_id = await asyncio.gather(
                                module.id, module.key, module.get_io_id(io_name))
 
-        nonce = self.__pack_int(self.__get_nonce(module))
-        io_id = self.__pack_int(io_id)
+        nonce = self._pack_int16(self.__get_nonce(module))
+        io_id = self._pack_int16(io_id)
         ad = nonce + io_id
         cipher, tag = sancus.crypto.wrap(module_key, ad, key)
 
         # The payload format is [sm_id, 16 bit nonce, index, wrapped(key), tag]
         # where the tag includes the nonce and the index.
-        payload = self.__pack_int(module_id) + ad + cipher + tag
+        payload = self._pack_int16(module_id) + ad + cipher + tag
 
         # The result format is [16 bit result code, tag] where the tag includes
         # the nonce and the result code.
         result_len = 2 + sancus.config.SECURITY // 8
 
         result = await self.__send_reactive_command(
-                    _ReactiveCommand.SetKey, payload, result_len,
+                    ReactiveCommand.SetKey, payload, result_len,
                     log=('Setting key of %s:%s on %s to %s',
                          module.name, io_name, self.name,
                          binascii.hexlify(key).decode('ascii')))
 
         set_key_code_packed = result.payload[0:2]
-        set_key_code = self.__unpack_int(set_key_code_packed)
+        set_key_code = self._unpack_int16(set_key_code_packed)
         set_key_tag = result.payload[2:]
         set_key_ad = nonce + set_key_code_packed
         expected_tag = sancus.crypto.mac(module_key, set_key_ad)
@@ -119,7 +117,7 @@ class SancusNode(Node):
         if set_key_tag != expected_tag:
             raise Error('Module response has wrong tag')
 
-        if set_key_code != _ReactiveSetKeyResultCode.Ok:
+        if set_key_code != ReactiveResultCode.Ok:
             raise Error('Got error code from module: {}'.format(set_key_code))
 
     async def call(self, module, entry, arg=None):
@@ -127,12 +125,12 @@ class SancusNode(Node):
 
         module_id, entry_id = \
             await asyncio.gather(module.id, module.get_entry_id(entry))
-        payload = self.__pack_int(module_id) + \
-                  self.__pack_int(entry_id)  + \
+        payload = self._pack_int16(module_id) + \
+                  self._pack_int16(entry_id)  + \
                   (b'' if arg is None else arg)
 
         await self.__send_reactive_command(
-                    _ReactiveCommand.Call, payload,
+                    ReactiveCommand.Call, payload,
                     log=('Sending call command to %s:%s (%s:%s) on %s',
                          module.name, entry, module_id, entry_id, self.name))
 
@@ -157,66 +155,33 @@ class SancusNode(Node):
             with contextlib.closing(writer):
                 writer.write(packet)
                 raw_result = await reader.readexactly(result_len + 1)
-                code = _ReactiveResultCode(raw_result[0])
+                code = ReactiveResultCode(raw_result[0])
 
-                if code != _ReactiveResultCode.Ok:
+                if code != ReactiveResultCode.Ok:
                     raise Error('Reactive command {} failed with code {}'
                                     .format(command, code))
 
-                return _ReactiveResult(code, raw_result[1:])
+                return ReactiveResult(code, raw_result[1:])
 
 
     def __create_reactive_packet(self, command, payload):
-        return self.__pack_int(command)      + \
-               self.__pack_int(len(payload)) + \
+        return self._pack_int16(command)      + \
+               self._pack_int16(len(payload)) + \
                payload;
 
     async def __create_install_packet(self, module):
-        # The packet format is [LEN NAME \0 VID ELF_FILE]
+        # The packet format is [COMMAND LEN NAME \0 VID ELF_FILE]
         # LEN is the length of the packet without LEN itself
 
         # Unfortunately, there is no asyncio support for file operations
+        # TODO actually there is
         with open(await module.binary, 'rb') as f:
             file_data = f.read()
 
         # +3 is the NULL terminator of the name + 2 bytes of the VID
         length = len(file_data) + len(module.name) + 3
 
-        return self.__pack_int(length)              + \
-               module.name.encode('ascii') + b'\0'  + \
-               self.__pack_int(self.vendor_id)      + \
+        return self._pack_int16(length)              + \
+               module.name.encode('ascii') + b'\0'   + \
+               self._pack_int16(self.vendor_id)      + \
                file_data
-
-    @staticmethod
-    def __pack_int(i):
-        return struct.pack('!H', i)
-
-    @staticmethod
-    def __unpack_int(i):
-        return struct.unpack('!H', i)[0]
-
-
-class _ReactiveCommand(IntEnum):
-    Connect   = 0x0
-    SetKey    = 0x1
-    PostEvent = 0x2
-    Call      = 0x3
-
-
-class _ReactiveResultCode(IntEnum):
-    Ok                = 0x0
-    ErrIllegalCommand = 0x1
-    ErrPayloadFormat  = 0x2
-    ErrInternal       = 0x3
-
-
-class _ReactiveResult:
-    def __init__(self, code, payload=bytearray()):
-        self.code = code
-        self.payload = payload
-
-
-class _ReactiveSetKeyResultCode(IntEnum):
-    Ok                   = 0x0,
-    ErrIllegalConnection = 0x1,
-    ErrWrongTag          = 0x2

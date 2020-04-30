@@ -7,7 +7,8 @@ from enum import IntEnum
 import base64
 import contextlib
 
-from .base import Node
+from .base import Node, ReactiveCommand, ReactiveResultCode, ReactiveResult
+
 from ..connection import ConnectionIO
 from .. import glob
 from .. import tools
@@ -16,7 +17,7 @@ class Error(Exception):
     pass
 
 
-class ServerNode(Node):
+class SGXBase(Node):
     def __init__(self, name, ip_address, reactive_port, deploy_port):
         super().__init__(name, ip_address, reactive_port, deploy_port)
 
@@ -39,14 +40,14 @@ class ServerNode(Node):
 
         from_module_id, from_output_id, to_module_id, to_input_id = results
 
-        payload = self._pack_int(from_module_id)                    + \
-                  self._pack_int(from_output_id)                    + \
-                  self._pack_int(to_module_id)                      + \
-                  self._pack_int(to_input_id)                       + \
-                  self._pack_int(to_module.node.reactive_port)      + \
+        payload = self._pack_int16(from_module_id)                    + \
+                  self._pack_int16(from_output_id)                    + \
+                  self._pack_int16(to_module_id)                      + \
+                  self._pack_int16(to_input_id)                       + \
+                  self._pack_int16(to_module.node.reactive_port)      + \
                   to_module.node.ip_address.packed
 
-        await self._send_reactive_command(payload, _ReactiveCommand.Connect)
+        await self._send_reactive_command(payload, ReactiveCommand.Connect)
         logging.info('Connected %s:%s to %s:%s on %s', from_module.name, from_output,
              to_module.name, to_input, self.name)
 
@@ -71,14 +72,14 @@ class ServerNode(Node):
 
         cipher = base64.b64decode(out)
 
-        payload =   self._pack_int(module.id)                + \
-                    self._pack_int(_CallEntrypoint.SetKey)   + \
-                    self._pack_int8(encryption)              + \
-                    self._pack_int(io_id)                    + \
-                    self._pack_int(nonce)                    + \
+        payload =   self._pack_int16(module.id)                + \
+                    self._pack_int16(_CallEntrypoint.SetKey)   + \
+                    self._pack_int8(encryption)                + \
+                    self._pack_int16(io_id)                    + \
+                    self._pack_int16(nonce)                    + \
                     cipher
 
-        await self._send_reactive_command(payload, _ReactiveCommand.Call)
+        await self._send_reactive_command(payload, ReactiveCommand.Call)
         logging.info("Set the key of {}:{}".format(module.name, io_name))
 
 
@@ -87,11 +88,11 @@ class ServerNode(Node):
         module_id = module.id
         entry_id = await module.get_entry_id(entry)
 
-        payload = self._pack_int(module_id) + \
-                  self._pack_int(entry_id)  + \
+        payload = self._pack_int16(module_id)       + \
+                  self._pack_int16(entry_id)        + \
                   (b'' if arg is None else arg)
 
-        await self._send_reactive_command(payload, _ReactiveCommand.Call)
+        await self._send_reactive_command(payload, ReactiveCommand.Call)
         logging.info("Sent call to {}:{} ({}:{}) on {}".format(module.name, entry, module_id, entry_id, self.name))
 
 
@@ -114,18 +115,18 @@ class ServerNode(Node):
         with contextlib.closing(writer):
             writer.write(packet)
             raw_result = await reader.readexactly(result_len + 1)
-            code = _ReactiveResultCode(raw_result[0])
+            code = ReactiveResultCode(raw_result[0])
 
-            if code != _ReactiveResultCode.Ok:
+            if code != ReactiveResultCode.Ok:
                 raise Error('Reactive command {} failed with code {}'
                                 .format(command, code))
 
-            return _ReactiveResult(code, raw_result[1:])
+            return ReactiveResult(code, raw_result[1:])
 
 
     def __create_reactive_packet(self, command, payload):
-        return self._pack_int(command)      + \
-               self._pack_int(len(payload)) + \
+        return self._pack_int16(command)      + \
+               self._pack_int16(len(payload)) + \
                payload
 
 
@@ -133,52 +134,3 @@ class ServerNode(Node):
         nonce = self.__nonces[module]
         self.__nonces[module] += 1
         return nonce
-
-
-    @staticmethod
-    def _pack_int(i):
-        return struct.pack('!H', i)
-
-    @staticmethod
-    def _unpack_int(i):
-        return struct.unpack('!H', i)[0]
-
-    @staticmethod
-    def _pack_int32(i):
-        return struct.pack('!i', i)
-
-    @staticmethod
-    def _unpack_int32(i):
-        return struct.unpack('!i', i)[0]
-
-    @staticmethod
-    def _pack_int8(i):
-        return struct.pack('!B', i)
-
-    @staticmethod
-    def _unpack_int8(i):
-        return struct.unpack('!B', i)[0]
-
-
-class _ReactiveCommand(IntEnum):
-    Connect   = 0x0
-    Call      = 0x1
-    Load      = 0x3
-    Ping      = 0x5
-
-
-class _CallEntrypoint(IntEnum):
-    SetKey  = 0x0
-
-
-class _ReactiveResultCode(IntEnum):
-    Ok                = 0x0
-    ErrIllegalCommand = 0x1
-    ErrPayloadFormat  = 0x2
-    ErrInternal       = 0x3
-
-
-class _ReactiveResult:
-    def __init__(self, code, payload=bytearray()):
-        self.code = code
-        self.payload = payload
