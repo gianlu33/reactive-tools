@@ -6,6 +6,7 @@ from reactivenet import Message, CommandMessage, ReactiveCommand
 from .sgxbase import SGXBase
 from .. import tools
 
+
 class NoSGXNode(SGXBase):
     async def deploy(self, module):
         async with aiofile.AIOFile(await module.binary, "rb") as f:

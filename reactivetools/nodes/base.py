@@ -6,6 +6,10 @@ import logging
 from abc import ABC, abstractmethod
 from enum import IntEnum
 
+
+class Error(Exception):
+    pass
+
 class Node(ABC):
     def __init__(self, name, ip_address, reactive_port, deploy_port, need_lock=False):
         self.name = name
