@@ -54,7 +54,7 @@ class SancusNode(Node):
 
         async with aiofile.AIOFile(symtab_file, "wb") as f:
             await f.write(symtab[:-1]) # Drop last 0 byte
-            await afp.fsync()
+            await f.fsync()
 
         return sm_id, symtab_file
 
