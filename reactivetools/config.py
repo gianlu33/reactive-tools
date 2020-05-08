@@ -208,8 +208,8 @@ def _parse_vendor_key(key_str):
 
     keysize = tools.get_sancus_key_size()
 
-    if len(key) != keysize // 8:
-        raise Error('Keys should be {} bit'.format(keysize))
+    if len(key) != keysize:
+        raise Error('Keys should be {} bytes'.format(keysize))
 
     return key
 

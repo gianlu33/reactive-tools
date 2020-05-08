@@ -96,7 +96,7 @@ def get_sancus_key_size():
     except:
         raise Error("Sancus python lib not installed! Check README.md")
 
-    return sancus.config.SECURITY
+    return sancus.config.SECURITY // 8
 
 
 def pack_int8(i):

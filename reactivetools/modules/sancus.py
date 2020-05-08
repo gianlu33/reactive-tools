@@ -206,7 +206,6 @@ class SancusModule(Module):
     async def __get_symbol(self, name):
         with open(await self.binary, 'rb') as f:
             elf = elffile.ELFFile(f)
-            name = name.encode('ascii')
             for section in elf.iter_sections():
                 if isinstance(section, elffile.SymbolTableSection):
                     for symbol in section.iter_symbols():

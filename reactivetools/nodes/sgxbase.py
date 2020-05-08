@@ -68,7 +68,7 @@ class SGXBase(Node):
         else:
             io_id = await module.get_input_id(io_name)
 
-        nonce = self.__get_nonce(module)
+        nonce = self._get_nonce(module)
 
         # encrypting key
         args = [str(encryption.value), str(io_id), str(nonce), base64.b64encode(key).decode(),
