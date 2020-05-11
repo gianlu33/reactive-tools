@@ -68,12 +68,18 @@ class SancusNode(Node):
                                        to_module.get_input_id(to_input))
         from_module_id, from_output_id, to_module_id, to_input_id = results
 
+        # HACK for sancus event manager:
+        # if ip address is 0.0.0.0 it handles the connection as local
+        ip_address = b'\x00' * 4 if \
+                from_module.node == to_module.node else \
+                to_module.node.ip_address.packed
+
         payload = tools.pack_int16(from_module_id)                      + \
                   tools.pack_int16(from_output_id)                      + \
                   tools.pack_int16(to_module_id)                        + \
                   tools.pack_int16(to_input_id)                         + \
                   tools.pack_int16(to_module.node.reactive_port)        + \
-                  to_module.node.ip_address.packed
+                  ip_address
 
         command = CommandMessage(ReactiveCommand.Connect,
                                 Message.new(payload),
@@ -100,7 +106,7 @@ class SancusNode(Node):
         module_id, module_key, io_id = await asyncio.gather(
                                module.id, module.key, module.get_io_id(io_name))
 
-        nonce = tools.pack_int16(self.__get_nonce(module))
+        nonce = tools.pack_int16(self._get_nonce(module))
         io_id = tools.pack_int16(io_id)
         ad = nonce + io_id
         cipher, tag = sancus.crypto.wrap(module_key, ad, key)
@@ -125,9 +131,10 @@ class SancusNode(Node):
                      binascii.hexlify(key).decode('ascii'))
                 )
 
-        # The result format is [tag] where the tag includes the nonce
-        set_key_tag = result.message.payload
-        expected_tag = sancus.crypto.mac(module_key, nonce)
+        # The result format is [tag] where the tag includes the nonce and result code
+        res_code = res.message.payload[:2]
+        set_key_tag = res.message.payload[2:]
+        expected_tag = sancus.crypto.mac(module_key, nonce + res_code)
 
         if set_key_tag != expected_tag:
             raise Error('Module response has wrong tag')

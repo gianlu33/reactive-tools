@@ -176,8 +176,12 @@ class SancusModule(Module):
 
     async def __link(self):
         linked_binary = tools.create_tmp(suffix='.elf')
-        await tools.run_async('msp430-ld', '-T', await self.symtab,
-                              '-o', linked_binary, await self.binary)
+
+        # NOTE: we use '--noinhibit-exec' flag because the linker complains
+        #       if the addresses of .bss section are not aligned to 2 bytes
+        #       using this flag instead, the output file is still generated
+        await tools.run_async_muted('msp430-ld', '-T', await self.symtab,
+                      '-o', linked_binary, '--noinhibit-exec', await self.binary)
         return linked_binary
 
 
