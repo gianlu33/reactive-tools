@@ -1,7 +1,7 @@
 import asyncio
 import aiofile
 
-from reactivenet import Message, CommandMessage, ReactiveCommand
+from reactivenet import CommandMessageLoad
 
 from .sgxbase import SGXBase
 from .. import tools
@@ -16,14 +16,12 @@ class SGXNode(SGXBase):
             sig = await f.read()
 
 
-        payload =   tools.pack_int16(_ReactiveCommand.Load)         + \
-                    tools.pack_int32(len(sgxs))                     + \
+        payload =   tools.pack_int32(len(sgxs))                     + \
                     sgxs                                            + \
                     tools.pack_int32(len(sig))                      + \
                     sig
 
-        command = CommandMessage(ReactiveCommand.Load,
-                                Message.new(payload),
+        command = CommandMessageLoad(payload,
                                 self.ip_address,
                                 self.deploy_port)
 
