@@ -115,7 +115,7 @@ In `connection.py` we can add new encryption algorithms in the `Encryption` enum
 Note that two modules can be connected using a specific encryption **only** if both of them support it. If, for example, you want to connect a SGX module with a TrustZone module using an encryption algorithm X, you have to:
 
 - Implement that encryption algorithm in the modules code
-  - For SGX/NoSGX modules, just update the [`ae_crypto`](https://github.com/gianlu33/thesis-rust-libraries/tree/master/ae_crypto) library
+  - For SGX/NoSGX modules, just update the [`ae_crypto`](https://github.com/gianlu33/rust-sgx-libs/tree/master/ae_crypto) library
 - Update the method `get_supported_encryption` of `SGXModule` and `TrustZoneModule`.
 
 ## Update config.py

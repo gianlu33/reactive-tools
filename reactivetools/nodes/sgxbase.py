@@ -3,6 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 import base64
 import contextlib
+import binascii
 
 from reactivenet import *
 
@@ -92,7 +93,9 @@ class SGXBase(Node):
 
         await self._send_reactive_command(
                 command,
-                log="Set the key of {}:{}".format(module.name, io_name)
+                log='Setting key of {}:{} on {} to {}'.format(
+                     module.name, io_name, self.name,
+                     binascii.hexlify(key).decode('ascii'))
                 )
 
 

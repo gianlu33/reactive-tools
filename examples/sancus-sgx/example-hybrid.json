@@ -1,0 +1,58 @@
+{
+    "nodes": [
+        {
+            "type": "nosgx",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 5000
+        },
+        {
+            "type": "sancus",
+            "name": "node2",
+            "ip_address": "127.0.0.1",
+            "vendor_id": 4660,
+            "vendor_key": "4078d505d82099ba",
+            "reactive_port": 6000
+        }
+    ],
+    "modules" : [
+        {
+            "type": "nosgx",
+            "name": "sm1",
+            "node": "node1"
+        },
+        {
+            "type": "nosgx",
+            "name": "sm2",
+            "node": "node1"
+        },
+        {
+            "type": "sancus",
+            "name": "sm3",
+            "files": ["sm3.c"],
+            "node": "node2"
+        },
+        {
+            "type": "sancus",
+            "name": "sm4",
+            "files": ["sm4.c"],
+            "node": "node2"
+        }
+    ],
+    "connections": [
+      {
+          "from_module": "sm1",
+          "from_output": "output1",
+          "to_module": "sm3",
+          "to_input": "input3",
+          "encryption": "spongent"
+      },
+      {
+          "from_module": "sm4",
+          "from_output": "output4",
+          "to_module": "sm2",
+          "to_input": "input2",
+          "encryption": "spongent"
+      }
+    ]
+}
