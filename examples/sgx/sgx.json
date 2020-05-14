@@ -35,7 +35,7 @@
           "from_output": "output",
           "to_module": "sm2",
           "to_input": "input",
-          "encryption": "aead"
+          "encryption": "aes"
       }
     ]
 }

@@ -123,7 +123,7 @@ class NoSGXModule(Module):
 
     @staticmethod
     def get_supported_encryption():
-        return [Encryption.AEAD, Encryption.SPONGENT]
+        return [Encryption.AES, Encryption.SPONGENT]
 
 
     # --- Static methods --- #

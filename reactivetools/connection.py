@@ -34,28 +34,28 @@ class ConnectionIO(IntEnum):
 
 
 class Encryption(IntEnum):
-    AEAD        = 0x0
+    AES         = 0x0
     SPONGENT    = 0x1
 
     @staticmethod
     def from_str(str):
         lower_str = str.lower()
 
-        if lower_str == "aead":
-            return Encryption.AEAD
+        if lower_str == "aes":
+            return Encryption.AES
         if lower_str == "spongent":
             return Encryption.SPONGENT
 
         raise Error("No matching encryption type for {}".format(str))
 
     def to_str(self):
-        if self == Encryption.AEAD:
-            return "aead"
+        if self == Encryption.AES:
+            return "aes"
         if self == Encryption.SPONGENT:
             return "spongent"
 
     def get_key_size(self):
-        if self == Encryption.AEAD:
+        if self == Encryption.AES:
             return 16
         if self == Encryption.SPONGENT:
             return tools.get_sancus_key_size()

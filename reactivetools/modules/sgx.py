@@ -174,7 +174,7 @@ class SGXModule(Module):
 
     @staticmethod
     def get_supported_encryption():
-        return [Encryption.AEAD, Encryption.SPONGENT]
+        return [Encryption.AES, Encryption.SPONGENT]
 
 
     # --- Static methods --- #
@@ -219,7 +219,7 @@ class SGXModule(Module):
         if None in optionals and any(map(lambda x: x is not None, optionals)):
             raise Error('Either all of the optional node parameters '
                         'should be given or none')
-                        
+
 
     async def generate_code(self):
         if self.__generate_fut is None:
