@@ -6,7 +6,7 @@ Tools for Authentic Execution work. [Website](https://people.cs.kuleuven.be/~jan
 
 Currently, the following architectures are supported:
 
-- Sancus (with Contiki OS)
+- Sancus
 - Intel SGX 
 - Normal computers ("No-SGX", for testing purposes)
 
@@ -18,21 +18,21 @@ See [here](add_new_architectures.md)
 
 ### Target devices
 
-**Sancus (Contiki)**
+**Sancus**
 
-- [Contiki OS](https://github.com/sancus-pma/sancus-contiki) installed on the device
-  - With `reactive` (Event manager) and `sm-loader` running applications
+- [Reactive application](https://github.com/fritzalder/sancus-riot/tree/reactive-app/sancus-testbed/reactive)
+  - Event Manager & Module Loader running on top of RIOT OS port for Sancus
 
 **Intel SGX**
 
 - [Rust](https://www.rust-lang.org/tools/install) - to run the event manager
 - [Fortanix EDP](https://edp.fortanix.com/docs/installation/guide/) - to run SGX enclaves
-- [Event Manager](https://github.com/gianlu33/authentic-execution-sgx/tree/master/apps/event_manager)
+- [Event Manager](https://github.com/gianlu33/rust-sgx-apps)
 
 **NoSGX**
 
 - [Rust](https://www.rust-lang.org/tools/install) - to run the event manager
-- [Event Manager](https://github.com/gianlu33/authentic-execution-sgx/tree/master/apps/event_manager)
+- [Event Manager](https://github.com/gianlu33/rust-sgx-apps)
 
 ### Deployer
 
@@ -49,12 +49,12 @@ See [here](add_new_architectures.md)
 **Intel SGX/NoSGX**
 
 - Rust & Fortanix EDP
-- [`rust-sgx-gen`](https://github.com/gianlu33/authentic-execution-sgx) - code generation tool
+- [`rust-sgx-gen`](https://github.com/gianlu33/rust-sgx-gen/) - code generation tool
 
-- [Utility apps](https://github.com/gianlu33/authentic-execution-sgx/tree/master/apps) - `set_key_encryptor`, `ra_client` and `ra_sp`
+- [Utility apps](https://github.com/gianlu33/rust-sgx-apps) - `set_key_encryptor`, `ra_client` and `ra_sp`
   - needed for connection key encryption and remote attestation
   - Simply run the `install_deployer.sh` script in the `apps` folder
-- See [here](https://github.com/gianlu33/authentic-execution-sgx/blob/master/README.md) for more details
+- See [here](sgx.md) for more details
 
 ## Run
 
