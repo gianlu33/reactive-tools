@@ -13,6 +13,10 @@ An [Event Manager](https://github.com/gianlu33/rust-sgx-apps/tree/master) must b
   - E.g. if the EM listens to port 5000, SM1 will listen to port 5001, SM2 to 5002, etc..
   - As a consequence, you need to assign ports to Event Managers on the same machine with a certain interval (e.g. 5000, 6000, etc.)
 
+## Limitations
+
+At the moment, SGX modules can be only deployed in `debug` mode.
+
 ## Remote Attestation
 
 Remote Attestation (RA) is the process where the deployer can verify that a remote module is correctly loaded inside a node and not tampered with. During the process, data can also be exchanged, such as a symmetric key for future communication.
