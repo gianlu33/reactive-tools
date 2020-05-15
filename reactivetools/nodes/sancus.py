@@ -34,7 +34,7 @@ class SancusNode(Node):
                     file_data
 
         command = CommandMessage(ReactiveCommand.Load,
-                                Message.new(payload),
+                                Message(payload),
                                 self.ip_address,
                                 self.deploy_port)
 
@@ -82,7 +82,7 @@ class SancusNode(Node):
                   ip_address
 
         command = CommandMessage(ReactiveCommand.Connect,
-                                Message.new(payload),
+                                Message(payload),
                                 self.ip_address,
                                 self.reactive_port)
 
@@ -120,7 +120,7 @@ class SancusNode(Node):
                         tag
 
         command = CommandMessage(ReactiveCommand.Call,
-                                Message.new(payload),
+                                Message(payload),
                                 self.ip_address,
                                 self.reactive_port)
 
@@ -151,7 +151,7 @@ class SancusNode(Node):
                   (b'' if arg is None else arg)
 
         command = CommandMessage(ReactiveCommand.Call,
-                                Message.new(payload),
+                                Message(payload),
                                 self.ip_address,
                                 self.reactive_port)
 

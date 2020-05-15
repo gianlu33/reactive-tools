@@ -120,7 +120,7 @@ def unpack_int16(i):
     return struct.unpack('!H', i)[0]
 
 def pack_int32(i):
-    return struct.pack('!i', i)
+    return struct.pack('!I', i)
 
 def unpack_int32(i):
-    return struct.unpack('!i', i)[0]
+    return struct.unpack('!I', i)[0]

@@ -46,7 +46,7 @@ class SGXBase(Node):
                   to_module.node.ip_address.packed
 
         command = CommandMessage(ReactiveCommand.Connect,
-                                Message.new(payload),
+                                Message(payload),
                                 self.ip_address,
                                 self.reactive_port)
 
@@ -87,7 +87,7 @@ class SGXBase(Node):
                     cipher
 
         command = CommandMessage(ReactiveCommand.Call,
-                                Message.new(payload),
+                                Message(payload),
                                 self.ip_address,
                                 self.reactive_port)
 
@@ -109,7 +109,7 @@ class SGXBase(Node):
                   (b'' if arg is None else arg)
 
         command = CommandMessage(ReactiveCommand.Call,
-                                Message.new(payload),
+                                Message(payload),
                                 self.ip_address,
                                 self.reactive_port)
 
