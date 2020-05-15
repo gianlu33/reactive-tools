@@ -40,7 +40,9 @@ async def run_async(*args):
 
 async def run_async_muted(*args, output_file=os.devnull):
     logging.debug(' '.join(args))
-    process = await asyncio.create_subprocess_exec(*args, stdout=open(output_file, 'wb'), stderr=asyncio.subprocess.STDOUT)
+    process = await asyncio.create_subprocess_exec(*args,
+                                            stdout=open(output_file, 'wb'),
+                                            stderr=asyncio.subprocess.STDOUT)
     result = await process.wait()
 
     if result != 0:
@@ -49,7 +51,9 @@ async def run_async_muted(*args, output_file=os.devnull):
 
 async def run_async_background(*args):
     logging.debug(' '.join(args))
-    process = await asyncio.create_subprocess_exec(*args, stdout=open(os.devnull, 'wb'), stderr=asyncio.subprocess.STDOUT)
+    process = await asyncio.create_subprocess_exec(*args,
+                                            stdout=open(os.devnull, 'wb'),
+                                            stderr=asyncio.subprocess.STDOUT)
 
     return process
 
@@ -57,7 +61,9 @@ async def run_async_background(*args):
 async def run_async_output(*args):
     cmd = ' '.join(args)
     logging.debug(cmd)
-    process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    process = await asyncio.create_subprocess_exec(*args,
+                                            stdout=asyncio.subprocess.PIPE,
+                                            stderr=asyncio.subprocess.PIPE)
     out, err = await process.communicate()
 
     if err:
@@ -69,7 +75,9 @@ async def run_async_output(*args):
 async def run_async_shell(*args):
     cmd = ' '.join(args)
     logging.debug(cmd)
-    process = await asyncio.create_subprocess_shell(cmd, stdout=open(os.devnull, 'wb'), stderr=asyncio.subprocess.STDOUT)
+    process = await asyncio.create_subprocess_shell(cmd,
+                                            stdout=open(os.devnull, 'wb'),
+                                            stderr=asyncio.subprocess.STDOUT)
     result = await process.wait()
 
     if result != 0:

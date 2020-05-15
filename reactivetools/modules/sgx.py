@@ -34,6 +34,12 @@ async def _generate_sp_keys():
 
 
 async def _run_ra_sp():
+    # kill old ra_sp (if running)
+    try:
+        await tools.run_async_muted("pkill", "-f", glob.RA_SP)
+    except:
+        pass
+
     arg = await SGXModule._get_ra_sp_priv_key()
 
     return await tools.run_async_background(glob.RA_SP, arg)
