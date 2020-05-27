@@ -245,13 +245,12 @@ class SGXModule(Module):
         args.input = self.name
         args.output = self.output
         args.moduleid = self.id
-        args.key = None
         args.emport = self.node.deploy_port
-        args.runner = "runner_sgx"
+        args.runner = rustsgxgen.Runner.SGX
         args.spkey = await self._get_ra_sp_pub_key()
         args.print = None
 
-        inputs, outputs, entrypoints = rustsgxgen.generate(args)
+        inputs, outputs, entrypoints, _ = rustsgxgen.generate(args)
         logging.info("Generated code for module {}".format(self.name))
 
         return inputs, outputs, entrypoints

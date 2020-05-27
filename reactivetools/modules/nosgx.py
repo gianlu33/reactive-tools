@@ -24,9 +24,8 @@ class NoSGXModule(Module):
         self.__check_init_args(node, id, binary, key, inputs, outputs, entrypoints)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
-        self.__generate_fut = tools.init_future(inputs, outputs, entrypoints)
+        self.__generate_fut = tools.init_future(inputs, outputs, entrypoints, key)
         self.__build_fut = tools.init_future(binary)
-        self.__gen_key_fut = tools.init_future(key)
 
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
@@ -36,28 +35,26 @@ class NoSGXModule(Module):
 
     @property
     async def inputs(self):
-        inputs, _outs, _entrys = await self.generate_code()
+        inputs, _outs, _entrys, _key = await self.generate_code()
         return inputs
 
 
     @property
     async def outputs(self):
-        _ins, outputs, _entrys = await self.generate_code()
+        _ins, outputs, _entrys, _key = await self.generate_code()
         return outputs
 
 
     @property
     async def entrypoints(self):
-        _ins, _outs, entrypoints = await self.generate_code()
+        _ins, _outs, entrypoints, _key = await self.generate_code()
         return entrypoints
 
 
     @property
     async def key(self):
-        if self.__gen_key_fut is None:
-            self.__gen_key_fut = asyncio.ensure_future(self.__generate_key())
-
-        return await self.__gen_key_fut
+        _ins, _outs, _entrys, key = await self.generate_code()
+        return key
 
 
     @property
@@ -163,16 +160,15 @@ class NoSGXModule(Module):
         args.input = self.name
         args.output = self.output
         args.moduleid = self.id
-        args.key = await self.key
         args.emport = self.node.deploy_port
-        args.runner = "runner_nosgx"
+        args.runner = rustsgxgen.Runner.NoSGX
         args.spkey = None
         args.print = None
 
-        inputs, outputs, entrypoints = rustsgxgen.generate(args)
+        inputs, outputs, entrypoints, key = rustsgxgen.generate(args)
         logging.info("Generated code for module {}".format(self.name))
 
-        return inputs, outputs, entrypoints
+        return inputs, outputs, entrypoints, key
 
 
     async def __build(self):
@@ -185,7 +181,3 @@ class NoSGXModule(Module):
 
         logging.info("Built module {}".format(self.name))
         return binary
-
-
-    async def __generate_key(self):
-        return tools.generate_key(16)
