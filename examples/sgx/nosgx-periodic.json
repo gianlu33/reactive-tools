@@ -1,0 +1,44 @@
+{
+    "nodes": [
+        {
+            "type": "nosgx",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 5000
+        },
+        {
+            "type": "nosgx",
+            "name": "node2",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 6000
+        }
+    ],
+    "modules" : [
+        {
+            "type": "nosgx",
+            "name": "sm1",
+            "node": "node1"
+        },
+        {
+            "type": "nosgx",
+            "name": "sm2",
+            "node": "node2"
+        }
+    ],
+    "connections" : [
+      {
+          "from_module": "sm1",
+          "from_output": "output",
+          "to_module": "sm2",
+          "to_input": "input",
+          "encryption": "aes"
+      }
+    ],
+    "periodic-events" : [
+      {
+        "module" : "sm1",
+        "entry" : "entry",
+        "frequency" : 1000
+      }
+    ]
+}

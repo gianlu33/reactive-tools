@@ -40,6 +40,10 @@ class Node(ABC):
     async def call(self, module, entry, arg=None):
         pass
 
+    @abstractmethod
+    async def register_entrypoint(self, module, entry, frequency):
+        pass
+
 
     async def _send_reactive_command(self, command, log=None):
         if self.__lock is not None:

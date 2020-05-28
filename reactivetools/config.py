@@ -7,10 +7,12 @@ import asyncio
 import functools
 import binascii
 import types
+import logging
 
 from .nodes import SancusNode, SGXNode, NoSGXNode
-from .modules import SancusModule, SGXModule, NoSGXModule
+from .modules import SancusModule, SGXModule, NoSGXModule, Module
 from .connection import Connection, Encryption
+from .periodic_event import PeriodicEvent
 from . import tools
 
 
@@ -46,6 +48,13 @@ class Config:
         futures = map(Connection.establish, self.connections)
         await asyncio.gather(*futures)
 
+        # this is needed if we don't have any connections, to ensure that
+        # the modules are actually deployed
+        await self.deploy_modules_ordered_async()
+
+        futures = map(PeriodicEvent.register, self.periodic_events)
+        await asyncio.gather(*futures)
+
     def install(self):
         asyncio.get_event_loop().run_until_complete(self.install_async())
 
@@ -71,11 +80,25 @@ def load(file_name):
         contents = json.load(f)
 
     config = Config(file_name)
+
     config.nodes = _load_list(contents['nodes'], _load_node)
     config.modules = _load_list(contents['modules'],
                                 lambda m: _load_module(m, config))
-    config.connections = _load_list(contents['connections'],
-                                    lambda c: _load_connection(c, config))
+
+    try:
+        config.connections = _load_list(contents['connections'],
+                                        lambda c: _load_connection(c, config))
+    except:
+        logging.warning("Error while loading 'connections' section of input file")
+        config.connections = []
+
+    try:
+        config.periodic_events = _load_list(contents['periodic-events'],
+                                        lambda e: _load_periodic_event(e, config))
+    except:
+        logging.warning("Error while loading 'periodic-events' section of input file")
+        config.periodic_events = []
+
     return config
 
 
@@ -187,6 +210,14 @@ def _load_connection(conn_dict, config):
     return Connection(from_module, from_output, to_module, to_input, encryption, key)
 
 
+def _load_periodic_event(events_dict, config):
+    module = config.get_module(events_dict['module'])
+    entry = events_dict['entry']
+    frequency = _parse_frequency(events_dict['frequency'])
+
+    return PeriodicEvent(module, entry, frequency)
+
+
 def _generate_key(module1, module2, encryption):
     if encryption not in module1.get_supported_encryption() or \
        encryption not in module2.get_supported_encryption():
@@ -212,6 +243,13 @@ def _parse_vendor_key(key_str):
         raise Error('Keys should be {} bytes'.format(keysize))
 
     return key
+
+
+def _parse_frequency(freq):
+    if not 1 <= freq <= 2**32 - 1:
+        raise Error('Frequency out of range')
+
+    return freq
 
 
 def _load_module_file(file_name, config):
@@ -248,7 +286,8 @@ def _(config):
     return {
         'nodes': _dump(config.nodes),
         'modules': _dump(config.modules),
-        'connections': _dump(config.connections)
+        'connections': _dump(config.connections),
+        'periodic-events' : _dump(config.periodic_events)
     }
 
 
@@ -349,6 +388,15 @@ def _(conn):
         "to_input": conn.to_input,
         "encryption": conn.encryption.to_str(),
         "key": _dump(conn.key)
+    }
+
+
+@_dump.register(PeriodicEvent)
+def _(event):
+    return {
+        "module": event.module.name,
+        "entry": event.entry,
+        "frequency": event.frequency
     }
 
 

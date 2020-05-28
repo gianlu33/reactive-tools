@@ -31,5 +31,12 @@
           "to_input": "input3",
           "encryption": "spongent"
       }
+    ],
+    "periodic-events": [
+      {
+        "module" : "sm4",
+        "entry" : "init",
+        "frequency" : 1000
+      }
     ]
 }

@@ -120,6 +120,27 @@ class SGXBase(Node):
                 )
 
 
+    async def register_entrypoint(self, module, entry, frequency):
+        assert module.node is self
+        module_id = module.id
+        entry_id = await module.get_entry_id(entry)
+
+        payload = tools.pack_int16(module_id)       + \
+                  tools.pack_int16(entry_id)        + \
+                  tools.pack_int32(frequency)
+
+        command = CommandMessage(ReactiveCommand.RegisterEntrypoint,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Sending RegisterEntrypoint command of {}:{} ({}:{}) on {}'.format(
+                     module.name, entry, module_id, entry_id, self.name)
+                )
+
+
     def get_module_id(self):
         id = self.__moduleid
         self.__moduleid += 1
