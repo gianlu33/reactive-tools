@@ -29,11 +29,11 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def connect(self, from_module, from_output, to_module, to_input):
+    async def connect(self, to_module, conn_id):
         pass
 
     @abstractmethod
-    async def set_key(self, module, io_name, encryption, key, conn_io):
+    async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
         pass
 
     @abstractmethod

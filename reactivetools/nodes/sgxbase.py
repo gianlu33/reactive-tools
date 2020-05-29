@@ -28,20 +28,11 @@ class SGXBase(Node):
         pass
 
 
-    async def connect(self, from_module, from_output, to_module, to_input):
-        assert from_module.node is self
+    async def connect(self, to_module, conn_id):
+        module_id = await to_module.get_id()
 
-        results = await asyncio.gather(from_module.get_id(),
-                                       from_module.get_output_id(from_output),
-                                       to_module.get_id(),
-                                       to_module.get_input_id(to_input))
-
-        from_module_id, from_output_id, to_module_id, to_input_id = results
-
-        payload = tools.pack_int16(from_module_id)                    + \
-                  tools.pack_int16(from_output_id)                    + \
-                  tools.pack_int16(to_module_id)                      + \
-                  tools.pack_int16(to_input_id)                       + \
+        payload = tools.pack_int32(conn_id)                           + \
+                  tools.pack_int16(module_id)                         + \
                   tools.pack_int16(to_module.node.reactive_port)      + \
                   to_module.node.ip_address.packed
 
@@ -52,14 +43,10 @@ class SGXBase(Node):
 
         await self._send_reactive_command(
                 command,
-                log='Connecting {}:{} to {}:{} on {}'.format(
-                 from_module.name, from_output,
-                 to_module.name, to_input,
-                 self.name)
-                )
+                log='Connecting id {} to {}'.format(conn_id, to_module.name))
 
 
-    async def set_key(self, module, io_name, encryption, key, conn_io):
+    async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
         assert module.node is self
         assert encryption in module.get_supported_encryption()
         await module.deploy()
@@ -71,9 +58,14 @@ class SGXBase(Node):
 
         nonce = self._get_nonce(module)
 
+        ad =    tools.pack_int8(encryption)                     + \
+                tools.pack_int32(conn_id)                       + \
+                tools.pack_int16(io_id)                         + \
+                tools.pack_int16(nonce)
+
         # encrypting key
-        args = [str(encryption.value), str(io_id), str(nonce), base64.b64encode(key).decode(),
-            base64.b64encode(await module.key).decode()]
+        args = [base64.b64encode(ad).decode(), base64.b64encode(key).decode(),
+                                    base64.b64encode(await module.key).decode()]
 
         out = await tools.run_async_output(glob.ENCRYPTOR, *args)
 
@@ -81,9 +73,7 @@ class SGXBase(Node):
 
         payload =   tools.pack_int16(module.id)                     + \
                     tools.pack_int16(ReactiveEntrypoint.SetKey)     + \
-                    tools.pack_int8(encryption)                     + \
-                    tools.pack_int16(io_id)                         + \
-                    tools.pack_int16(nonce)                         + \
+                    ad                                              + \
                     cipher
 
         command = CommandMessage(ReactiveCommand.Call,
@@ -93,8 +83,8 @@ class SGXBase(Node):
 
         await self._send_reactive_command(
                 command,
-                log='Setting key of {}:{} on {} to {}'.format(
-                     module.name, io_name, self.name,
+                log='Setting key of connection {} ({}:{}) on {} to {}'.format(
+                     conn_id, module.name, io_name, self.name,
                      binascii.hexlify(key).decode('ascii'))
                 )
 

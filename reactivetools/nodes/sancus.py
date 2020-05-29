@@ -59,7 +59,10 @@ class SancusNode(Node):
         return sm_id, symtab_file
 
 
-    async def connect(self, from_module, from_output, to_module, to_input):
+    async def connect(self, to_module, conn_id):
+        pass
+        # TODO update
+        """
         assert from_module.node is self
 
         results = await asyncio.gather(from_module.get_id(),
@@ -93,8 +96,11 @@ class SancusNode(Node):
                  to_module.name, to_input,
                  self.name)
                 )
+        """
 
-    async def set_key(self, module, io_name, encryption, key, conn_io):
+    async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
+        pass #TODO update
+        """
         assert module.node is self
         assert encryption in module.get_supported_encryption()
 
@@ -138,6 +144,7 @@ class SancusNode(Node):
 
         if set_key_tag != expected_tag:
             raise Error('Module response has wrong tag')
+        """
 
 
     async def call(self, module, entry, arg=None):
