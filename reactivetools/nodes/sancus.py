@@ -3,6 +3,7 @@ import contextlib
 import logging
 import binascii
 import aiofile
+from enum import IntEnum
 
 from reactivenet import *
 
@@ -12,6 +13,14 @@ from .. import tools
 
 class Error(Exception):
     pass
+
+
+class SetKeyResultCode(IntEnum):
+    Ok                = 0x0
+    IllegalConnection = 0x1
+    MalformedPayload  = 0x2
+    InternalError     = 0x3
+
 
 class SancusNode(Node):
     def __init__(self, name, vendor_id, vendor_key,
@@ -60,28 +69,17 @@ class SancusNode(Node):
 
 
     async def connect(self, to_module, conn_id):
-        pass
-        # TODO update
-        """
-        assert from_module.node is self
-
-        results = await asyncio.gather(from_module.get_id(),
-                                       from_module.get_output_id(from_output),
-                                       to_module.get_id(),
-                                       to_module.get_input_id(to_input))
-        from_module_id, from_output_id, to_module_id, to_input_id = results
+        module_id = await to_module.get_id()
 
         # HACK for sancus event manager:
         # if ip address is 0.0.0.0 it handles the connection as local
         ip_address = b'\x00' * 4 if \
-                from_module.node == to_module.node else \
+                to_module.node is self else \
                 to_module.node.ip_address.packed
 
-        payload = tools.pack_int16(from_module_id)                      + \
-                  tools.pack_int16(from_output_id)                      + \
-                  tools.pack_int16(to_module_id)                        + \
-                  tools.pack_int16(to_input_id)                         + \
-                  tools.pack_int16(to_module.node.reactive_port)        + \
+        payload = tools.pack_int16(conn_id)                           + \
+                  tools.pack_int16(module_id)                         + \
+                  tools.pack_int16(to_module.node.reactive_port)      + \
                   ip_address
 
         command = CommandMessage(ReactiveCommand.Connect,
@@ -91,16 +89,10 @@ class SancusNode(Node):
 
         await self._send_reactive_command(
                 command,
-                log='Connecting {}:{} to {}:{} on {}'.format(
-                 from_module.name, from_output,
-                 to_module.name, to_input,
-                 self.name)
-                )
-        """
+                log='Connecting id {} to {}'.format(conn_id, to_module.name))
+
 
     async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
-        pass #TODO update
-        """
         assert module.node is self
         assert encryption in module.get_supported_encryption()
 
@@ -114,7 +106,8 @@ class SancusNode(Node):
 
         nonce = tools.pack_int16(self._get_nonce(module))
         io_id = tools.pack_int16(io_id)
-        ad = nonce + io_id
+        conn_id_packed = tools.pack_int16(conn_id)
+        ad = conn_id_packed + io_id + nonce
         cipher, tag = sancus.crypto.wrap(module_key, ad, key)
 
         # The payload format is [sm_id, entry_id, 16 bit nonce, index, wrapped(key), tag]
@@ -139,12 +132,15 @@ class SancusNode(Node):
 
         # The result format is [tag] where the tag includes the nonce and result code
         res_code = res.message.payload[:2]
+        res_code_enum = SetKeyResultCode(tools.unpack_int16(res_code))
+        if res_code_enum != SetKeyResultCode.Ok:
+            raise Error("Received result code {}".format(str(res_code_enum)))
+
         set_key_tag = res.message.payload[2:]
         expected_tag = sancus.crypto.mac(module_key, nonce + res_code)
 
         if set_key_tag != expected_tag:
             raise Error('Module response has wrong tag')
-        """
 
 
     async def call(self, module, entry, arg=None):

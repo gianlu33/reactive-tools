@@ -26,9 +26,9 @@
     "connections": [
       {
           "from_module": "sm4",
-          "from_output": "output4",
+          "from_output": "output",
           "to_module": "sm3",
-          "to_input": "input3",
+          "to_input": "input",
           "encryption": "spongent"
       }
     ],

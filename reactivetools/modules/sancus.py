@@ -25,7 +25,7 @@ class SancusModule(Module):
 
         self.files = files
         self.cflags = cflags
-        self.ldflags = ldflags
+        self.ldflags = ldflags + ['--num-connections 10'] #TODO!!
 
         self.__build_fut = tools.init_future(binary)
         self.__deploy_fut = tools.init_future(id, symtab)
@@ -113,8 +113,11 @@ class SancusModule(Module):
         else:
             flags = []
 
-        return _BuildConfig(cc='sancus-cc', cflags=flags,
-                            ld='sancus-ld', ldflags=flags)
+        cflags = flags
+        ldflags = flags + ['--inline-arithmetic']
+
+        return _BuildConfig(cc='sancus-cc', cflags=cflags,
+                            ld='sancus-ld', ldflags=ldflags )
 
 
     # --- Others --- #

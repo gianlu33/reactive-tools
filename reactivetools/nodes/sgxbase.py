@@ -31,7 +31,7 @@ class SGXBase(Node):
     async def connect(self, to_module, conn_id):
         module_id = await to_module.get_id()
 
-        payload = tools.pack_int32(conn_id)                           + \
+        payload = tools.pack_int16(conn_id)                           + \
                   tools.pack_int16(module_id)                         + \
                   tools.pack_int16(to_module.node.reactive_port)      + \
                   to_module.node.ip_address.packed
@@ -59,7 +59,7 @@ class SGXBase(Node):
         nonce = self._get_nonce(module)
 
         ad =    tools.pack_int8(encryption)                     + \
-                tools.pack_int32(conn_id)                       + \
+                tools.pack_int16(conn_id)                       + \
                 tools.pack_int16(io_id)                         + \
                 tools.pack_int16(nonce)
 

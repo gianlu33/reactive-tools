@@ -16,6 +16,8 @@ class Connection(namedtuple('Connection', ['from_module', 'from_output',
         from_node, to_node = self.from_module.node, self.to_module.node
         conn_id = self.get_connection_id()
 
+        # TODO check if the module is the same: if so, abort!
+
         connect = from_node.connect(self.to_module, conn_id)
         set_key_from = from_node.set_key(self.from_module, conn_id, self.from_output,
                                      self.encryption, self.key, ConnectionIO.OUTPUT)
