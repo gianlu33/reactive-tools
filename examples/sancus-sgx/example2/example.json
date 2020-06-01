@@ -1,0 +1,97 @@
+{
+    "nodes": [
+        {
+            "type": "nosgx",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 5000
+        },
+        {
+            "type": "nosgx",
+            "name": "node2",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 6000
+        },
+        {
+            "type": "sancus",
+            "name": "node3",
+            "ip_address": "127.0.0.1",
+            "vendor_id": 4660,
+            "vendor_key": "4078d505d82099ba",
+            "reactive_port": 7000
+        }
+    ],
+    "modules" : [
+        {
+            "type": "nosgx",
+            "name": "sm1",
+            "node": "node1"
+        },
+        {
+            "type": "nosgx",
+            "name": "sm2",
+            "node": "node2"
+        },
+        {
+            "type": "sancus",
+            "name": "sm3",
+            "files": ["sm3.c"],
+            "node": "node3"
+        },
+        {
+            "type": "sancus",
+            "name": "sm4",
+            "files": ["sm4.c"],
+            "node": "node3"
+        }
+    ],
+    "connections": [
+      {
+          "from_module": "sm1",
+          "from_output": "get_value",
+          "to_module": "sm3",
+          "to_input": "produce_value",
+          "encryption": "spongent"
+      },
+      {
+          "from_module": "sm1",
+          "from_output": "get_value",
+          "to_module": "sm4",
+          "to_input": "produce_value",
+          "encryption": "spongent"
+      },
+      {
+          "from_module": "sm1",
+          "from_output": "send_value",
+          "to_module": "sm2",
+          "to_input": "add_value",
+          "encryption": "aes"
+      },
+      {
+          "from_module": "sm3",
+          "from_output": "send_value",
+          "to_module": "sm1",
+          "to_input": "recv_value",
+          "encryption": "spongent"
+      },
+      {
+          "from_module": "sm4",
+          "from_output": "send_value",
+          "to_module": "sm1",
+          "to_input": "recv_value",
+          "encryption": "spongent"
+      }
+    ],
+    "periodic-events" : [
+      {
+        "module" : "sm1",
+        "entry" : "request_values",
+        "frequency" : 1000
+      },
+      {
+        "module" : "sm2",
+        "entry" : "compute_sum",
+        "frequency" : 5000
+      }
+    ]
+}
