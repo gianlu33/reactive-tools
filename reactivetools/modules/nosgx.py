@@ -17,8 +17,8 @@ class Error(Exception):
 
 
 class NoSGXModule(Module):
-    def __init__(self, name, node, id=None, binary=None, key=None, inputs=None,
-                    outputs=None, entrypoints=None):
+    def __init__(self, name, node, features, id=None, binary=None, key=None,
+                    inputs=None, outputs=None, entrypoints=None):
         super().__init__(name, node)
 
         self.__check_init_args(node, id, binary, key, inputs, outputs, entrypoints)
@@ -27,6 +27,7 @@ class NoSGXModule(Module):
         self.__generate_fut = tools.init_future(inputs, outputs, entrypoints, key)
         self.__build_fut = tools.init_future(binary)
 
+        self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
@@ -174,7 +175,11 @@ class NoSGXModule(Module):
     async def __build(self):
         await self.generate_code()
 
-        cmd = glob.BUILD_APP.format(self.output).split()
+        features = ""
+        if self.features:
+            features = "--features " + " ".join(self.features)
+
+        cmd = glob.BUILD_APP.format(features, self.output).split()
         await tools.run_async_muted(*cmd)
 
         binary = "{}/target/{}/{}".format(self.output, glob.BUILD_MODE, self.name)

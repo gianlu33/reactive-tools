@@ -49,9 +49,9 @@ class SGXModule(Module):
     _sp_keys_fut = asyncio.ensure_future(_generate_sp_keys())
     _ra_sp_fut = asyncio.ensure_future(_run_ra_sp())
 
-    def __init__(self, name, node, vendor_key, ra_settings, id=None, binary=None,
-                    key=None, sgxs=None, signature=None, inputs=None,
-                    outputs=None, entrypoints=None):
+    def __init__(self, name, node, vendor_key, ra_settings, features, id=None,
+                    binary=None, key=None, sgxs=None, signature=None,
+                    inputs=None, outputs=None, entrypoints=None):
         super().__init__(name, node)
 
         self.__check_init_args(node, id, binary, key, sgxs, signature, inputs, outputs, entrypoints)
@@ -64,6 +64,7 @@ class SGXModule(Module):
 
         self.vendor_key = vendor_key
         self.ra_settings = ra_settings
+        self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = tools.create_tmp_dir()
@@ -259,7 +260,11 @@ class SGXModule(Module):
     async def __build(self):
         await self.generate_code()
 
-        cmd = glob.BUILD_SGX_APP.format(self.output).split()
+        features = ""
+        if self.features:
+            features = "--features " + " ".join(self.features)
+
+        cmd = glob.BUILD_SGX_APP.format(features, self.output).split()
         await tools.run_async_muted(*cmd)
 
         binary = "{}/target/{}/{}/{}".format(self.output, glob.SGX_TARGET, glob.BUILD_MODE, self.name)

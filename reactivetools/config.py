@@ -169,6 +169,7 @@ def _load_sgx_module(mod_dict, config):
     node = config.get_node(mod_dict['node'])
     vendor_key = mod_dict['vendor_key']
     settings = mod_dict['ra_settings']
+    features = mod_dict.get('features')
     id = mod_dict.get('id')
     binary = mod_dict.get('binary')
     key = mod_dict.get('key')
@@ -178,13 +179,14 @@ def _load_sgx_module(mod_dict, config):
     outputs = mod_dict.get('outputs')
     entrypoints = mod_dict.get('entrypoints')
 
-    return SGXModule(name, node, vendor_key, settings, id, binary, key, sgxs,
-                        signature, inputs, outputs, entrypoints)
+    return SGXModule(name, node, vendor_key, settings, features, id, binary, key,
+                            sgxs, signature, inputs, outputs, entrypoints)
 
 
 def _load_nosgx_module(mod_dict, config):
     name = mod_dict['name']
     node = config.get_node(mod_dict['node'])
+    features = mod_dict.get('features')
     id = mod_dict.get('id')
     binary = mod_dict.get('binary')
     key = mod_dict.get('key')
@@ -192,7 +194,8 @@ def _load_nosgx_module(mod_dict, config):
     outputs = mod_dict.get('outputs')
     entrypoints = mod_dict.get('entrypoints')
 
-    return NoSGXModule(name, node, id, binary, key, inputs, outputs, entrypoints)
+    return NoSGXModule(name, node, features, id, binary, key, inputs, outputs,
+                                    entrypoints)
 
 
 def _load_connection(conn_dict, config):
@@ -350,6 +353,7 @@ def _(module):
         "node": module.node.name,
         "vendor_key": module.vendor_key,
         "ra_settings": module.ra_settings,
+        "features": module.features,
         "id": module.id,
         "binary": _dump(module.binary),
         "sgxs": _dump(module.sgxs),
@@ -378,6 +382,7 @@ def _(module):
         "type": "nosgx",
         "name": module.name,
         "node": module.node.name,
+        "features": module.features,
         "id": module.id,
         "binary": _dump(module.binary),
         "key": _dump(module.key),
