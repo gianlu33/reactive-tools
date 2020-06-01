@@ -25,7 +25,7 @@ class SancusModule(Module):
 
         self.files = files
         self.cflags = cflags
-        self.ldflags = ldflags + ['--num-connections 10'] #TODO!!
+        self.ldflags = ldflags
 
         self.__build_fut = tools.init_future(binary)
         self.__deploy_fut = tools.init_future(id, symtab)
@@ -156,6 +156,11 @@ class SancusModule(Module):
 
         binary = tools.create_tmp(suffix='.elf')
         ldflags = config.ldflags + self.ldflags
+
+        # setting connections (if not specified in JSON file)
+        if not any("--num-connections" in flag for flag in ldflags):
+            ldflags.append("--num-connections {}".format(self.connections))
+
         await tools.run_async(config.ld, *ldflags,
                               '-o', binary, *objects.values())
         return binary

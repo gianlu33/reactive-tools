@@ -88,15 +88,17 @@ def load(file_name):
     try:
         config.connections = _load_list(contents['connections'],
                                         lambda c: _load_connection(c, config))
-    except:
+    except Exception as e:
         logging.warning("Error while loading 'connections' section of input file")
+        logging.warning("{}".format(e))
         config.connections = []
 
     try:
         config.periodic_events = _load_list(contents['periodic-events'],
                                         lambda e: _load_periodic_event(e, config))
-    except:
+    except Exception as e:
         logging.warning("Error while loading 'periodic-events' section of input file")
+        logging.warning("{}".format(e))
         config.periodic_events = []
 
     return config
@@ -152,7 +154,7 @@ def _load_sancus_module(mod_dict, config):
     files = _load_list(mod_dict['files'],
                        lambda f: _load_module_file(f, config))
     cflags = _load_list(mod_dict.get('cflags'))
-    ldflags = _load_list(mod_dict.get('ldlags'))
+    ldflags = _load_list(mod_dict.get('ldflags'))
     node = config.get_node(mod_dict['node'])
     binary = mod_dict.get('binary')
     id = mod_dict.get('id')
@@ -199,6 +201,12 @@ def _load_connection(conn_dict, config):
     to_module = config.get_module(conn_dict['to_module'])
     to_input = conn_dict['to_input']
     encryption = Encryption.from_str(conn_dict['encryption'])
+
+    if from_module == to_module:
+        raise Error("Cannot establish a within the same module!")
+
+    from_module.connections += 1
+    to_module.connections += 1
 
     # Don't use dict.get() here because we don't want to call os.urandom() when
     # not strictly necessary.

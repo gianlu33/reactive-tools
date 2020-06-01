@@ -4,6 +4,7 @@ class Module(ABC):
     def __init__(self, name, node):
         self.name = name
         self.node = node
+        self.connections = 0
 
     @abstractmethod
     async def deploy(self):
