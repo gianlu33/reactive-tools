@@ -4,15 +4,18 @@
 
 SM_INPUT(sm3, input3, data, len)
 {
-  puts("SM3 input!");
+  if(len < 2) {
+    puts("SM3 input3: Wrong data");
+    return;
+  }
 
   unsigned int val = *(unsigned int*) data;
 
   if(val == 33) {
-    puts("SM3 input Correct!");
+    puts("SM3 input3: Correct!");
   }
   else {
-    puts("SM3 input Wrong");
+    puts("SM3 input3: Wrong");
   }
 }
 

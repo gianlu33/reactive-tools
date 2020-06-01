@@ -1,17 +1,17 @@
 
 //@ sm_input
 pub fn input(_data : &[u8]) {
-    authentic_execution::debug("input");
+    info!("input");
 }
 
 //@ sm_input
 pub fn input2(_data : &[u8]) {
-    authentic_execution::debug("input2");
+    info!("input2");
 }
 
 //@ sm_entry
 pub fn entry(data : &[u8]) -> ResultMessage {
-    authentic_execution::debug("entry");
+    info!("entry");
 
-    authentic_execution::success(None)
+    success(None)
 }

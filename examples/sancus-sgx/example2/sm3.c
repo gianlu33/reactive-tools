@@ -6,7 +6,7 @@ SM_OUTPUT(sm3, send_value);
 
 SM_INPUT(sm3, produce_value, data, len)
 {
-  puts("SM3 produce_value!");
+  puts("SM3 produce_value");
 
   unsigned int val = 33;
 

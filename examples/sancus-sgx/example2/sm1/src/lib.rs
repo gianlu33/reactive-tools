@@ -3,15 +3,16 @@
 
 //@ sm_input
 pub fn recv_value(data : &[u8]) {
-    authentic_execution::debug("recv_value");
+    info!("recv_value");
 
     if(data.len() < 2) {
-        authentic_execution::debug("Wrong data received");
+        error!("Wrong data received");
+        return;
     }
 
     let val = u16::from_le_bytes([data[0], data[1]]);
 
-    authentic_execution::debug(&format!("Val: {}", val));
+    debug!(&format!("Val: {}", val));
 
     send_value(data);
 }
@@ -19,10 +20,9 @@ pub fn recv_value(data : &[u8]) {
 
 //@ sm_entry
 pub fn request_values(data : &[u8]) -> ResultMessage {
-    authentic_execution::debug("request_values");
-
+    info!("request_values");
 
     get_value(&[]);
 
-    authentic_execution::success(None)
+    success(None)
 }

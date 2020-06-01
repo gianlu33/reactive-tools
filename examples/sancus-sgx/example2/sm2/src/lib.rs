@@ -8,10 +8,11 @@ lazy_static! {
 
 //@ sm_input
 pub fn add_value(data : &[u8]) {
-    authentic_execution::debug("input");
+    info!("add_value");
 
     if data.len() < 2 {
-        authentic_execution::debug("Wrong data received");
+        error!("Wrong data received");
+        return;
     }
 
     let val = u16::from_le_bytes([data[0], data[1]]);
@@ -23,12 +24,12 @@ pub fn add_value(data : &[u8]) {
 
 //@ sm_entry
 pub fn compute_sum(data : &[u8]) -> ResultMessage {
-    authentic_execution::debug("compute_sum");
+    info!("compute_sum");
 
     let mut values = VALUES.lock().unwrap();
 
     let sum : u32 = values.iter().sum();
-    authentic_execution::debug(&format!("Sum of numbers is {}", sum));
+    info!(&format!("Sum of numbers is {}", sum));
 
-    authentic_execution::success(None)
+    success(None)
 }
