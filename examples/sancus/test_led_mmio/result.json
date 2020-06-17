@@ -1,0 +1,48 @@
+{
+    "nodes": [
+        {
+            "type": "sancus",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "vendor_id": 4660,
+            "vendor_key": "4078d505d82099ba",
+            "reactive_port": 5000,
+            "deploy_port": 5000
+        }
+    ],
+    "modules": [
+        {
+            "type": "sancus",
+            "name": "sm1",
+            "files": [
+                "/home/gianlu33/Desktop/thesis-main/authentic-execution/reactive-tools/examples/sancus/test_led_mmio/sm1.c"
+            ],
+            "node": "node1",
+            "binary": "/tmp/tmph5bc7n60.elf",
+            "symtab": "/tmp/tmpa_4ms0yf.ld",
+            "id": 3,
+            "key": "f8d31cc72c78f24b"
+        },
+        {
+            "type": "sancus",
+            "name": "led_driver",
+            "files": [],
+            "node": "node1",
+            "binary": "",
+            "symtab": "",
+            "id": 1,
+            "key": "da1c0ae9eeeea174"
+        }
+    ],
+    "connections": [
+        {
+            "from_module": "sm1",
+            "from_output": "toggle_led",
+            "to_module": "led_driver",
+            "to_input": 0,
+            "encryption": "spongent",
+            "key": "64001bc63db58db3"
+        }
+    ],
+    "periodic-events": []
+}
