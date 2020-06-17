@@ -17,9 +17,9 @@ class Error(Exception):
 
 
 class NoSGXModule(Module):
-    def __init__(self, name, node, features, id=None, binary=None, key=None,
-                    inputs=None, outputs=None, entrypoints=None):
-        super().__init__(name, node)
+    def __init__(self, name, node, priority, deployed, features, id=None, binary=None,
+                    key=None, inputs=None, outputs=None, entrypoints=None):
+        super().__init__(name, node, priority, deployed)
 
         self.__check_init_args(node, id, binary, key, inputs, outputs, entrypoints)
 

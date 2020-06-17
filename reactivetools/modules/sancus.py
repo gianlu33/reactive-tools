@@ -17,9 +17,9 @@ class Error(Exception):
 
 
 class SancusModule(Module):
-    def __init__(self, name, files, cflags, ldflags, node,
+    def __init__(self, name, node, priority, deployed, files, cflags, ldflags,
                  binary=None, id=None, symtab=None, key=None):
-        super().__init__(name, node)
+        super().__init__(name, node, priority, deployed)
 
         self.__check_init_args(node, binary, id, symtab, key)
 
@@ -122,8 +122,12 @@ class SancusModule(Module):
 
     # --- Others --- #
 
-    async def get_io_id(self, io_name):
-        return await self._get_io_id(io_name)
+    async def get_io_id(self, io):
+        # If io is a number, that is the ID (given by the deployer)
+        if isinstance(io, int):
+            return io
+
+        return await self._get_io_id(io)
 
 
     def __check_init_args(self, node, binary, id, symtab, key):

@@ -62,7 +62,7 @@ class Node(ABC):
             response =  await command.send_wait()
             if not response.ok():
                 raise Error('Reactive command {} failed with code {}'
-                                .format(command.code, response.code))
+                                .format(str(command.code), str(response.code)))
             return response
 
         else:

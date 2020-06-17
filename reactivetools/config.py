@@ -45,6 +45,8 @@ class Config:
         raise Error('No module with name {}'.format(name))
 
     async def install_async(self):
+        await self.deploy_priority_modules()
+
         futures = map(Connection.establish, self.connections)
         await asyncio.gather(*futures)
 
@@ -73,6 +75,15 @@ class Config:
 
     async def cleanup_async(self):
         await SGXModule.kill_ra_sp()
+
+
+    async def deploy_priority_modules(self):
+        priority_modules = [sm for sm in self.modules if sm.priority is not None]
+        priority_modules.sort(key=lambda sm : sm.priority)
+
+        logging.debug("Priority modules: {}".format([sm.name for sm in priority_modules]))
+        for module in priority_modules:
+            await module.deploy()
 
 
 def load(file_name):
@@ -118,7 +129,7 @@ def _load_node(node_dict):
 def _load_sancus_node(node_dict):
     name = node_dict['name']
     vendor_id = _parse_vendor_id(node_dict['vendor_id'])
-    vendor_key = _parse_vendor_key(node_dict['vendor_key'])
+    vendor_key = _parse_sancus_key(node_dict['vendor_key'])
     ip_address = ipaddress.ip_address(node_dict['ip_address'])
     reactive_port = node_dict['reactive_port']
     deploy_port = node_dict.get('deploy_port', reactive_port)
@@ -151,22 +162,26 @@ def _load_module(mod_dict, config):
 
 def _load_sancus_module(mod_dict, config):
     name = mod_dict['name']
+    node = config.get_node(mod_dict['node'])
+    priority = mod_dict.get('priority')
+    deployed = mod_dict.get('deployed')
     files = _load_list(mod_dict['files'],
                        lambda f: _load_module_file(f, config))
     cflags = _load_list(mod_dict.get('cflags'))
     ldflags = _load_list(mod_dict.get('ldflags'))
-    node = config.get_node(mod_dict['node'])
     binary = mod_dict.get('binary')
     id = mod_dict.get('id')
     symtab = mod_dict.get('symtab')
-    key = mod_dict.get('key')
-    return SancusModule(name, files, cflags, ldflags, node,
+    key = _parse_sancus_key(mod_dict.get('key'))
+    return SancusModule(name, node, priority, deployed, files, cflags, ldflags,
                         binary, id, symtab, key)
 
 
 def _load_sgx_module(mod_dict, config):
     name = mod_dict['name']
     node = config.get_node(mod_dict['node'])
+    priority = mod_dict.get('priority')
+    deployed = mod_dict.get('deployed')
     vendor_key = mod_dict['vendor_key']
     settings = mod_dict['ra_settings']
     features = mod_dict.get('features')
@@ -179,13 +194,16 @@ def _load_sgx_module(mod_dict, config):
     outputs = mod_dict.get('outputs')
     entrypoints = mod_dict.get('entrypoints')
 
-    return SGXModule(name, node, vendor_key, settings, features, id, binary, key,
-                            sgxs, signature, inputs, outputs, entrypoints)
+    return SGXModule(name, node, priority, deployed, vendor_key, settings,
+                    features, id, binary, key, sgxs, signature, inputs, outputs,
+                    entrypoints)
 
 
 def _load_nosgx_module(mod_dict, config):
     name = mod_dict['name']
     node = config.get_node(mod_dict['node'])
+    priority = mod_dict.get('priority')
+    deployed = mod_dict.get('deployed')
     features = mod_dict.get('features')
     id = mod_dict.get('id')
     binary = mod_dict.get('binary')
@@ -194,8 +212,8 @@ def _load_nosgx_module(mod_dict, config):
     outputs = mod_dict.get('outputs')
     entrypoints = mod_dict.get('entrypoints')
 
-    return NoSGXModule(name, node, features, id, binary, key, inputs, outputs,
-                                    entrypoints)
+    return NoSGXModule(name, node, priority, deployed, features, id, binary, key,
+                                inputs, outputs, entrypoints)
 
 
 def _load_connection(conn_dict, config):
@@ -245,7 +263,10 @@ def _parse_vendor_id(id):
     return id
 
 
-def _parse_vendor_key(key_str):
+def _parse_sancus_key(key_str):
+    if key_str is None:
+        return None
+
     key = binascii.unhexlify(key_str)
 
     keysize = tools.get_sancus_key_size()

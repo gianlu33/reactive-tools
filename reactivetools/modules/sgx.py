@@ -49,10 +49,10 @@ class SGXModule(Module):
     _sp_keys_fut = asyncio.ensure_future(_generate_sp_keys())
     _ra_sp_fut = asyncio.ensure_future(_run_ra_sp())
 
-    def __init__(self, name, node, vendor_key, ra_settings, features, id=None,
-                    binary=None, key=None, sgxs=None, signature=None,
-                    inputs=None, outputs=None, entrypoints=None):
-        super().__init__(name, node)
+    def __init__(self, name, node, priority, deployed, vendor_key, ra_settings,
+                    features, id=None, binary=None, key=None, sgxs=None,
+                    signature=None, inputs=None, outputs=None, entrypoints=None):
+        super().__init__(name, node, priority, deployed)
 
         self.__check_init_args(node, id, binary, key, sgxs, signature, inputs, outputs, entrypoints)
 

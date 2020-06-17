@@ -34,6 +34,9 @@ class SancusNode(Node):
     async def deploy(self, module):
         assert module.node is self
 
+        if module.deployed is not None:
+            return
+
         async with aiofile.AIOFile(await module.binary, "rb") as f:
             file_data = await f.read()
 
@@ -108,6 +111,7 @@ class SancusNode(Node):
         io_id = tools.pack_int16(io_id)
         conn_id_packed = tools.pack_int16(conn_id)
         ad = conn_id_packed + io_id + nonce
+
         cipher, tag = sancus.crypto.wrap(module_key, ad, key)
 
         # The payload format is [sm_id, entry_id, 16 bit nonce, index, wrapped(key), tag]

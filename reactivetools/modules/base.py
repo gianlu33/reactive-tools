@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 
 class Module(ABC):
-    def __init__(self, name, node):
+    def __init__(self, name, node, priority, deployed):
         self.name = name
         self.node = node
+        self.priority = priority
+        self.deployed = deployed
         self.connections = 0
 
     @abstractmethod

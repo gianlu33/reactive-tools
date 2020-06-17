@@ -9,6 +9,9 @@ from .. import tools
 
 class SGXNode(SGXBase):
     async def deploy(self, module):
+        if module.deployed is not None:
+            return
+            
         async with aiofile.AIOFile(await module.sgxs, "rb") as f:
             sgxs = await f.read()
 
