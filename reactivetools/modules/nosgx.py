@@ -84,6 +84,9 @@ class NoSGXModule(Module):
 
 
     async def get_input_id(self, input):
+        if isinstance(input, int):
+            return input
+
         inputs = await self.inputs
 
         if input not in inputs:
@@ -93,6 +96,9 @@ class NoSGXModule(Module):
 
 
     async def get_output_id(self, output):
+        if isinstance(output, int):
+            return output
+
         outputs = await self.outputs
 
         if output not in outputs:
@@ -102,12 +108,15 @@ class NoSGXModule(Module):
 
 
     async def get_entry_id(self, entry):
-        entrypoints = await self.entrypoints
+        try:
+            return int(entry)
+        except:
+            entrypoints = await self.entrypoints
 
-        if entry not in entrypoints:
-            raise Error("Entry not present in entrypoints")
+            if entry not in entrypoints:
+                raise Error("Entry not present in entrypoints")
 
-        return entrypoints[entry]
+            return entrypoints[entry]
 
 
     async def get_key(self):

@@ -85,7 +85,11 @@ class SancusModule(Module):
 
 
     async def get_entry_id(self, entry):
-        return await self._get_entry_id(entry)
+        # If it is a number, that is the ID (given by the deployer)
+        try:
+            return int(entry)
+        except:
+            return await self._get_entry_id(entry)
 
 
     async def get_key(self):
