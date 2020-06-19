@@ -6,6 +6,7 @@ import sys
 import binascii
 
 from . import config
+from . import tools
 
 
 def _setup_logging(args):
@@ -70,6 +71,10 @@ def _parse_args(args):
         '--deploy-in-order',
         help='Deploy modules in the order they are found in the config file',
         action='store_true')
+    deploy_parser.add_argument(
+        '--sancus-security',
+        help='Override default Sancus key length, in bits (for spongent connections)',
+        type=int)
 
     call_parser = subparsers.add_parser(
         'call',
@@ -129,6 +134,11 @@ def main(raw_args=None):
 
     _setup_logging(args)
     _setup_pdb(args)
+
+    try:
+        tools.set_sancus_key_size(args.sancus_security)
+    except:
+        pass
 
     try:
         args.command_handler(args)
