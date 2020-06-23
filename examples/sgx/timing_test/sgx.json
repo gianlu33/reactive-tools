@@ -1,0 +1,19 @@
+{
+    "nodes": [
+        {
+            "type": "nosgx",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 5000
+        }
+    ],
+    "modules" : [
+        {
+            "type": "nosgx",
+            "name": "sm1",
+            "node": "node1"
+        }
+    ],
+    "connections" : [
+    ]
+}
