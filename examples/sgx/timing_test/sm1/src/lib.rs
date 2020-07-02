@@ -5,7 +5,7 @@ use std::time::SystemTime;
 const SIZE : usize = 20;
 
 //@ sm_entry
-pub fn start_test(data : &[u8]) -> ResultMessage {
+pub fn start_test(_data : &[u8]) -> ResultMessage {
     debug!("starting test");
 
     let start_time = SystemTime::now();
@@ -47,7 +47,7 @@ fn ping_device() -> Result<(), ()> {
     }
 
     match reactive_net::read_result(&mut stream) {
-        Ok(p)   => debug!("Received result"),
+        Ok(_)   => debug!("Received result"),
         Err(e)  => {
             error!(e);
             return Err(());
