@@ -6,7 +6,7 @@ const SIZE : usize = 20;
 
 //@ sm_entry
 pub fn start_test(data : &[u8]) -> ResultMessage {
-    info!("starting test");
+    debug!("starting test");
 
     let start_time = SystemTime::now();
 
@@ -34,7 +34,7 @@ fn ping_device() -> Result<(), ()> {
         }
     };
 
-    info!("Connected to SM");
+    debug!("Connected to SM");
 
     let payload = [0u8; SIZE];
     let cmd = CommandMessage::new(CommandCode::Ping, Some(payload.to_vec()));
@@ -47,7 +47,7 @@ fn ping_device() -> Result<(), ()> {
     }
 
     match reactive_net::read_result(&mut stream) {
-        Ok(p)   => info!("Received result"),
+        Ok(p)   => debug!("Received result"),
         Err(e)  => {
             error!(e);
             return Err(());

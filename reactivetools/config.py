@@ -63,6 +63,7 @@ class Config:
     async def deploy_modules_ordered_async(self):
         for module in self.modules:
             await module.deploy()
+            await module.get_key() # trigger remote attestation for some modules (e.g. SGX)
 
     def deploy_modules_ordered(self):
         asyncio.get_event_loop().run_until_complete(
