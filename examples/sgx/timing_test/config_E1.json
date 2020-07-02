@@ -1,0 +1,28 @@
+{
+    "nodes": [
+        {
+            "type": "sgx",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 5000
+        }
+    ],
+    "modules" : [
+        {
+            "type": "sgx",
+            "name": "sm1",
+            "node": "node1",
+            "vendor_key": "/home/gianluca/Desktop/sgx_ra_data/vendor_keys/private_key.pem",
+            "ra_settings": "/home/gianluca/Desktop/sgx_ra_data/settings.json"
+        }
+    ],
+    "connections" : [
+    ],
+    "periodic-events" : [
+      {
+        "module" : "sm1",
+        "entry" : "start_test",
+        "frequency" : 1000
+      }
+    ]
+}

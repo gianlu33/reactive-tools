@@ -2,7 +2,7 @@ use std::net::TcpStream;
 use reactive_net::{CommandCode, CommandMessage};
 use std::time::SystemTime;
 
-const SIZE : usize = 2;
+const SIZE : usize = 20;
 
 //@ sm_entry
 pub fn start_test(data : &[u8]) -> ResultMessage {

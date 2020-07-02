@@ -15,5 +15,12 @@
         }
     ],
     "connections" : [
+    ],
+    "periodic-events" : [
+      {
+        "module" : "sm1",
+        "entry" : "start_test",
+        "frequency" : 1000
+      }
     ]
 }
