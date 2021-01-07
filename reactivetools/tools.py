@@ -43,8 +43,7 @@ async def run_async(*args):
 async def run_async_muted(*args, output_file=os.devnull):
     logging.debug(' '.join(args))
     process = await asyncio.create_subprocess_exec(*args,
-                                            stdout=open(output_file, 'wb'),
-                                            stderr=asyncio.subprocess.STDOUT)
+                                            stdout=open(output_file, 'wb'))
     result = await process.wait()
 
     if result != 0:
@@ -54,8 +53,7 @@ async def run_async_muted(*args, output_file=os.devnull):
 async def run_async_background(*args):
     logging.debug(' '.join(args))
     process = await asyncio.create_subprocess_exec(*args,
-                                            stdout=open(os.devnull, 'wb'),
-                                            stderr=asyncio.subprocess.STDOUT)
+                                            stdout=open(os.devnull, 'wb'))
 
     return process
 
@@ -78,8 +76,7 @@ async def run_async_shell(*args):
     cmd = ' '.join(args)
     logging.debug(cmd)
     process = await asyncio.create_subprocess_shell(cmd,
-                                            stdout=open(os.devnull, 'wb'),
-                                            stderr=asyncio.subprocess.STDOUT)
+                                            stdout=open(os.devnull, 'wb'))
     result = await process.wait()
 
     if result != 0:
