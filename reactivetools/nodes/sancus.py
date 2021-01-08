@@ -64,9 +64,10 @@ class SancusNode(Node):
         symtab = res.message.payload[2:]
         symtab_file = tools.create_tmp(suffix='.ld')
 
-        async with aiofile.AIOFile(symtab_file, "wb") as f:
-            await f.write(symtab[:-1]) # Drop last 0 byte
-            await f.fsync()
+        # aiofile for write operations is bugged (version 3.3.3)
+        # I get a "bad file descriptor" error after writes.
+        with open(symtab_file, "wb") as f:
+            f.write(symtab[:-1]) # Drop last 0 byte
 
         return sm_id, symtab_file
 
