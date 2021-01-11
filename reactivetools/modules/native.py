@@ -171,7 +171,7 @@ class NativeModule(Module):
         args.output = self.output
         args.moduleid = self.id
         args.emport = self.node.deploy_port
-        args.runner = rustsgxgen.Runner.Native
+        args.runner = rustsgxgen.Runner.NATIVE
         args.spkey = None
         args.print = None
 
