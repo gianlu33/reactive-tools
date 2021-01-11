@@ -304,7 +304,9 @@ class SGXModule(Module):
         await self.deploy()
         await self._ra_sp_fut
 
-        args = [str(self.node.ip_address), str(self.port), self.ra_settings, await self.sig]
+        settings_abs = os.path.abspath(self.ra_settings)
+
+        args = [str(self.node.ip_address), str(self.port), settings_abs, await self.sig]
         key = await tools.run_async_output(glob.RA_CLIENT, *args)
 
         logging.info("Done Remote Attestation of {}".format(self.name))
