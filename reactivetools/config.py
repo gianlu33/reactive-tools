@@ -9,8 +9,8 @@ import binascii
 import types
 import logging
 
-from .nodes import SancusNode, SGXNode, NoSGXNode
-from .modules import SancusModule, SGXModule, NoSGXModule, Module
+from .nodes import SancusNode, SGXNode, NativeNode
+from .modules import SancusModule, SGXModule, NativeModule, Module
 from .connection import Connection, Encryption
 from .periodic_event import PeriodicEvent
 from . import tools
@@ -148,13 +148,13 @@ def _load_sgx_node(node_dict):
     return SGXNode(name, ip_address, reactive_port, deploy_port)
 
 
-def _load_nosgx_node(node_dict):
+def _load_native_node(node_dict):
     name = node_dict['name']
     ip_address = ipaddress.ip_address(node_dict['ip_address'])
     reactive_port = node_dict['reactive_port']
     deploy_port = node_dict.get('deploy_port', reactive_port)
 
-    return NoSGXNode(name, ip_address, reactive_port, deploy_port)
+    return NativeNode(name, ip_address, reactive_port, deploy_port)
 
 
 def _load_module(mod_dict, config):
@@ -200,7 +200,7 @@ def _load_sgx_module(mod_dict, config):
                     entrypoints)
 
 
-def _load_nosgx_module(mod_dict, config):
+def _load_native_module(mod_dict, config):
     name = mod_dict['name']
     node = config.get_node(mod_dict['node'])
     priority = mod_dict.get('priority')
@@ -213,7 +213,7 @@ def _load_nosgx_module(mod_dict, config):
     outputs = mod_dict.get('outputs')
     entrypoints = mod_dict.get('entrypoints')
 
-    return NoSGXModule(name, node, priority, deployed, features, id, binary, key,
+    return NativeModule(name, node, priority, deployed, features, id, binary, key,
                                 inputs, outputs, entrypoints)
 
 
@@ -293,14 +293,14 @@ def _load_module_file(file_name, config):
 _node_load_funcs = {
     'sancus': _load_sancus_node,
     'sgx': _load_sgx_node,
-    'nosgx': _load_nosgx_node
+    'native': _load_native_node
 }
 
 
 _module_load_funcs = {
     'sancus': _load_sancus_module,
     'sgx': _load_sgx_module,
-    'nosgx': _load_nosgx_module
+    'native': _load_native_module
 }
 
 
@@ -387,10 +387,10 @@ def _(module):
     }
 
 
-@_dump.register(NoSGXNode)
+@_dump.register(NativeNode)
 def _(node):
     return {
-        "type": "nosgx",
+        "type": "native",
         "name": node.name,
         "ip_address": str(node.ip_address),
         "reactive_port": node.reactive_port,
@@ -398,10 +398,10 @@ def _(node):
     }
 
 
-@_dump.register(NoSGXModule)
+@_dump.register(NativeModule)
 def _(module):
     return {
-        "type": "nosgx",
+        "type": "native",
         "name": module.name,
         "node": module.node.name,
         "features": module.features,

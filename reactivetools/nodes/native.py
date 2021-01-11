@@ -7,7 +7,7 @@ from .sgxbase import SGXBase
 from .. import tools
 
 
-class NoSGXNode(SGXBase):
+class NativeNode(SGXBase):
     async def deploy(self, module):
         if module.deployed is not None:
             return

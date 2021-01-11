@@ -1,3 +1,3 @@
 from .sancus import SancusNode
-from .nosgx import NoSGXNode
+from .native import NativeNode
 from .sgx import SGXNode

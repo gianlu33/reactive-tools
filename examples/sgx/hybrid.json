@@ -7,7 +7,7 @@
             "reactive_port": 5000
         },
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "node2",
             "ip_address": "127.0.0.1",
             "reactive_port": 6000
@@ -22,7 +22,7 @@
             "ra_settings": "/home/gianluca/Desktop/sgx_ra_data/settings.json"
         },
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "sm2",
             "node": "node2"
         }

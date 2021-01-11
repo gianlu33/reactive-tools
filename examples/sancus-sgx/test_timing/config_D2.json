@@ -1,7 +1,7 @@
 {
     "nodes": [
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "node1",
             "ip_address": "127.0.0.1",
             "reactive_port": 5000
@@ -17,7 +17,7 @@
     ],
     "modules" : [
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "sender",
             "node": "node1"
         },

@@ -29,7 +29,7 @@ See [here](add_new_architectures.md)
 - [Fortanix EDP](https://edp.fortanix.com/docs/installation/guide/) - to run SGX enclaves
 - [Event Manager](https://github.com/gianlu33/rust-sgx-apps)
 
-**NoSGX**
+**Native**
 
 - [Rust](https://www.rust-lang.org/tools/install) - to run the event manager
 - [Event Manager](https://github.com/gianlu33/rust-sgx-apps)
@@ -46,7 +46,7 @@ See [here](add_new_architectures.md)
   - You also need to add to add the python library to `PYTHONPATH` 
     - `export PYTHONPATH=$PYTHONPATH:/usr/local/share/sancus-compiler/python/lib/`
 
-**Intel SGX/NoSGX**
+**Intel SGX/Native**
 
 - Rust & Fortanix EDP
 - [`rust-sgx-gen`](https://github.com/gianlu33/rust-sgx-gen/) - code generation tool

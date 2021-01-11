@@ -4,7 +4,7 @@ import os
 
 from .base import Module
 
-from ..nodes import NoSGXNode
+from ..nodes import NativeNode
 from .. import tools
 from .. import glob
 from ..connection import Encryption
@@ -16,7 +16,7 @@ class Error(Exception):
     pass
 
 
-class NoSGXModule(Module):
+class NativeModule(Module):
     def __init__(self, name, node, priority, deployed, features, id=None, binary=None,
                     key=None, inputs=None, outputs=None, entrypoints=None):
         super().__init__(name, node, priority, deployed)
@@ -125,7 +125,7 @@ class NoSGXModule(Module):
 
     @staticmethod
     def get_supported_node_type():
-        return NoSGXNode
+        return NativeNode
 
 
     @staticmethod
@@ -171,7 +171,7 @@ class NoSGXModule(Module):
         args.output = self.output
         args.moduleid = self.id
         args.emport = self.node.deploy_port
-        args.runner = rustsgxgen.Runner.NoSGX
+        args.runner = rustsgxgen.Runner.Native
         args.spkey = None
         args.print = None
 

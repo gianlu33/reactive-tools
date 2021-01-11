@@ -1,13 +1,13 @@
 {
     "nodes": [
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "node1",
             "ip_address": "127.0.0.1",
             "reactive_port": 5000
         },
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "node2",
             "ip_address": "127.0.0.1",
             "reactive_port": 6000
@@ -23,12 +23,12 @@
     ],
     "modules" : [
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "sm1",
             "node": "node1"
         },
         {
-            "type": "nosgx",
+            "type": "native",
             "name": "sm2",
             "node": "node2"
         },
