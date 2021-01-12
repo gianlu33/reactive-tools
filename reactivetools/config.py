@@ -44,6 +44,15 @@ class Config:
 
         raise Error('No module with name {}'.format(name))
 
+
+    def get_connection(self, id):
+        for c in self.connections:
+            if c.id == id:
+                return c
+
+        raise Error('No connection with ID {}'.format(id))
+
+
     async def install_async(self):
         await self.deploy_priority_modules()
 
@@ -87,7 +96,7 @@ class Config:
             await module.deploy()
 
 
-def load(file_name):
+def load(file_name, deploy=True):
     with open(file_name, 'r') as f:
         contents = json.load(f)
 
@@ -99,7 +108,7 @@ def load(file_name):
 
     try:
         config.connections = _load_list(contents['connections'],
-                                        lambda c: _load_connection(c, config))
+                                        lambda c: _load_connection(c, config, deploy))
     except Exception as e:
         logging.warning("Error while loading 'connections' section of input file")
         logging.warning("{}".format(e))
@@ -109,8 +118,8 @@ def load(file_name):
         config.periodic_events = _load_list(contents['periodic-events'],
                                         lambda e: _load_periodic_event(e, config))
     except Exception as e:
-        logging.warning("Error while loading 'periodic-events' section of input file")
-        logging.warning("{}".format(e))
+        logging.warning("'periodic-events' section not loaded.")
+        #logging.warning("{}".format(e))
         config.periodic_events = []
 
     return config
@@ -217,27 +226,37 @@ def _load_native_module(mod_dict, config):
                                 inputs, outputs, entrypoints)
 
 
-def _load_connection(conn_dict, config):
-    from_module = config.get_module(conn_dict['from_module'])
-    from_output = conn_dict['from_output']
+def _load_connection(conn_dict, config, deploy):
+    # direct connection: from Deployer to SM
+    # non-direct connection: from SM to SM
+    direct = conn_dict.get('direct')
+    if direct is None or not direct:
+        direct = False
+        from_module = config.get_module(conn_dict['from_module'])
+        from_output = conn_dict['from_output']
+    else:
+        from_module = None
+        from_output = None
+
     to_module = config.get_module(conn_dict['to_module'])
     to_input = conn_dict['to_input']
     encryption = Encryption.from_str(conn_dict['encryption'])
 
     if from_module == to_module:
-        raise Error("Cannot establish a within the same module!")
+        raise Error("Cannot establish a connection within the same module!")
 
-    from_module.connections += 1
+    if from_module is not None:
+        from_module.connections += 1
     to_module.connections += 1
 
-    # Don't use dict.get() here because we don't want to call os.urandom() when
-    # not strictly necessary.
-    if 'key' in conn_dict:
-        key = conn_dict['key']
+    if deploy:
+        id = Connection.get_connection_id() # incremental ID
+        key = _generate_key(from_module, to_module, encryption) # auto-generated key
     else:
-        key = _generate_key(from_module, to_module, encryption)
+        id = conn_dict['id']
+        key = conn_dict['key']
 
-    return Connection(from_module, from_output, to_module, to_input, encryption, key)
+    return Connection(from_module, from_output, to_module, to_input, encryption, key, id, direct)
 
 
 def _load_periodic_event(events_dict, config):
@@ -249,8 +268,8 @@ def _load_periodic_event(events_dict, config):
 
 
 def _generate_key(module1, module2, encryption):
-    if encryption not in module1.get_supported_encryption() or \
-       encryption not in module2.get_supported_encryption():
+    if (module1 is not None and encryption not in module1.get_supported_encryption()) \
+        or encryption not in module2.get_supported_encryption():
        raise Error('Encryption "{}" not supported between {} and {}'.format(
             encryption, module1.name, module2.name))
 
@@ -416,13 +435,17 @@ def _(module):
 
 @_dump.register(Connection)
 def _(conn):
+    from_module = None if conn.direct else conn.from_module.name
+
     return {
-        "from_module": conn.from_module.name,
+        "from_module": from_module,
         "from_output": conn.from_output,
         "to_module": conn.to_module.name,
         "to_input": conn.to_input,
         "encryption": conn.encryption.to_str(),
-        "key": _dump(conn.key)
+        "key": _dump(conn.key),
+        "id": conn.id,
+        "direct": conn.direct
     }
 
 

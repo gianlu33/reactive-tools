@@ -9,6 +9,10 @@ from . import config
 from . import tools
 
 
+class Error(Exception):
+    pass
+
+
 def _setup_logging(args):
     if args.debug:
         level = logging.DEBUG
@@ -99,6 +103,26 @@ def _parse_args(args):
         type=binascii.unhexlify,
         default=None)
 
+    call_parser = subparsers.add_parser(
+        'input',
+        help='Trigger a SM\'s input of a \"direct\" connection (between deployer and SM)')
+    call_parser.set_defaults(command_handler=_handle_input)
+    call_parser.add_argument(
+        '--config',
+        help='Specify configuration file to use '
+             '(the result of a previous "deploy" run)',
+        required=True)
+    call_parser.add_argument(
+        '--connection',
+        help='Connection ID of the connection',
+        type=int,
+        required=True)
+    call_parser.add_argument(
+        '--arg',
+        help='Argument to pass to the entry point (hex byte array)',
+        type=binascii.unhexlify,
+        default=None)
+
     return parser.parse_args(args)
 
 
@@ -127,6 +151,19 @@ def _handle_call(args):
 
     asyncio.get_event_loop().run_until_complete(
                                             module.call(args.entry, args.arg))
+
+
+def _handle_input(args):
+    logging.info('Triggering input of connection %d', args.connection)
+
+    conf = config.load(args.config)
+    conn = conf.get_connection(args.connection)
+
+    if conn.direct is None:
+        raise Error("Connection is not direct.")
+
+    asyncio.get_event_loop().run_until_complete(
+                                    conn.to_module.node.input(conn, args.arg))
 
 
 def main(raw_args=None):

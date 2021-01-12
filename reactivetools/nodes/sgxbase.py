@@ -110,6 +110,10 @@ class SGXBase(Node):
                 )
 
 
+    async def input(self, connection, arg=None):
+        raise Error("not implemented")
+
+
     async def register_entrypoint(self, module, entry, frequency):
         assert module.node is self
         module_id = module.id

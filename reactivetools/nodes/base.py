@@ -41,6 +41,10 @@ class Node(ABC):
         pass
 
     @abstractmethod
+    async def input(self, connection, arg=None):
+        pass
+
+    @abstractmethod
     async def register_entrypoint(self, module, entry, frequency):
         pass
 
