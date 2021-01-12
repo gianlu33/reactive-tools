@@ -209,11 +209,10 @@ class SGXModule(Module):
         return priv
 
 
-
     @staticmethod
     async def kill_ra_sp():
-        process = await SGXModule._ra_sp_fut
         try:
+            process = await SGXModule._ra_sp_fut
             process.kill()
             await asyncio.sleep(0.1) # to avoid weird error messages
         except:
