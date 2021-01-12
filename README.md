@@ -7,7 +7,7 @@ Tools for Authentic Execution work. [Website](https://people.cs.kuleuven.be/~jan
 Currently, the following architectures are supported:
 
 - Sancus
-- Intel SGX 
+- Intel SGX
 - Normal computers ("No-SGX", for testing purposes)
 
 ### Extending support for new architectures
@@ -36,14 +36,14 @@ See [here](add_new_architectures.md)
 
 ### Deployer
 
-**Note**: you only need to install the dependencies of the architectures you are interested in. 
+**Note**: you only need to install the dependencies of the architectures you are interested in.
 
 - e.g. if your system only works with Sancus devices, you don't need Fortanix EDP
 
 **Sancus**
 
 - [Sancus compiler](https://distrinet.cs.kuleuven.be/software/sancus/install.php)
-  - You also need to add to add the python library to `PYTHONPATH` 
+  - You also need to add to add the python library to `PYTHONPATH`
     - `export PYTHONPATH=$PYTHONPATH:/usr/local/share/sancus-compiler/python/lib/`
 
 **Intel SGX/Native**
@@ -51,7 +51,7 @@ See [here](add_new_architectures.md)
 - Rust & Fortanix EDP
 - [`rust-sgx-gen`](https://github.com/gianlu33/rust-sgx-gen/) - code generation tool
 
-- [Utility apps](https://github.com/gianlu33/rust-sgx-apps) - `set_key_encryptor`, `ra_client` and `ra_sp`
+- [Utility apps](https://github.com/gianlu33/rust-sgx-apps) - `aes_encryptor`, `ra_client` and `ra_sp`
   - needed for connection key encryption and remote attestation
   - Simply run the `install_deployer.sh` script in the `apps` folder
 - See [here](sgx.md) for more details

@@ -2,7 +2,7 @@
 BUILD_MODE = "debug"
 
 # Apps
-ENCRYPTOR = "set_key_encryptor"
+ENCRYPTOR = "aes_encryptor"
 RA_SP = "ra_sp"
 RA_CLIENT = "ra_client"
 
