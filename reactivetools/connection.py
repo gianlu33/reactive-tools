@@ -8,10 +8,20 @@ from . import tools
 class Error(Exception):
     pass
 
-class Connection(namedtuple('Connection', ['from_module', 'from_output',
-                                           'to_module', 'to_input',
-                                           'encryption', 'key', 'id', 'direct'])):
+class Connection:
     cnt = 0
+
+    def __init__(self, from_module, from_output, to_module, to_input,
+                    encryption, key, id, direct, nonce):
+        self.from_module = from_module
+        self.from_output = from_output
+        self.to_module = to_module
+        self.to_input = to_input
+        self.encryption = encryption
+        self.key = key
+        self.id = id
+        self.direct = direct
+        self.nonce = nonce
 
     async def establish(self):
         if self.direct:
@@ -40,6 +50,8 @@ class Connection(namedtuple('Connection', ['from_module', 'from_output',
 
     async def __establish_direct(self):
         to_node = self.to_module.node
+
+        print("Key: {}".format(self.key))
 
         await to_node.set_key(self.to_module, self.id, self.to_input,
                                      self.encryption, self.key, ConnectionIO.INPUT)

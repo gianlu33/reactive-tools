@@ -26,6 +26,12 @@
           "to_module": "sm2",
           "to_input": "input",
           "encryption": "aes"
+      },
+      {
+          "direct": true,
+          "to_module": "sm2",
+          "to_input": "input",
+          "encryption": "aes"
       }
     ]
 }

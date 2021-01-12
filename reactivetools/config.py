@@ -197,7 +197,7 @@ def _load_sgx_module(mod_dict, config):
     features = mod_dict.get('features')
     id = mod_dict.get('id')
     binary = mod_dict.get('binary')
-    key = mod_dict.get('key')
+    key = _parse_key(mod_dict.get('key'))
     sgxs = mod_dict.get('sgxs')
     signature = mod_dict.get('signature')
     inputs = mod_dict.get('inputs')
@@ -217,7 +217,7 @@ def _load_native_module(mod_dict, config):
     features = mod_dict.get('features')
     id = mod_dict.get('id')
     binary = mod_dict.get('binary')
-    key = mod_dict.get('key')
+    key = _parse_key(mod_dict.get('key'))
     inputs = mod_dict.get('inputs')
     outputs = mod_dict.get('outputs')
     entrypoints = mod_dict.get('entrypoints')
@@ -252,11 +252,13 @@ def _load_connection(conn_dict, config, deploy):
     if deploy:
         id = Connection.get_connection_id() # incremental ID
         key = _generate_key(from_module, to_module, encryption) # auto-generated key
+        nonce = 0 # only used for direct connections
     else:
         id = conn_dict['id']
-        key = conn_dict['key']
+        key = _parse_key(conn_dict['key'])
+        nonce = conn_dict['nonce']
 
-    return Connection(from_module, from_output, to_module, to_input, encryption, key, id, direct)
+    return Connection(from_module, from_output, to_module, to_input, encryption, key, id, direct, nonce)
 
 
 def _load_periodic_event(events_dict, config):
@@ -295,6 +297,13 @@ def _parse_sancus_key(key_str):
         raise Error('Keys should be {} bytes'.format(keysize))
 
     return key
+
+
+def _parse_key(key_str):
+    if key_str is None:
+        return None
+
+    return binascii.unhexlify(key_str)
 
 
 def _parse_frequency(freq):
@@ -445,7 +454,8 @@ def _(conn):
         "encryption": conn.encryption.to_str(),
         "key": _dump(conn.key),
         "id": conn.id,
-        "direct": conn.direct
+        "direct": conn.direct,
+        "nonce": conn.nonce
     }
 
 

@@ -29,6 +29,12 @@
             "to_module": "sm2",
             "to_input": "input",
             "encryption": "spongent"
+        },
+        {
+            "to_module": "sm2",
+            "to_input": "input",
+            "encryption": "spongent",
+            "direct": true
         }
     ]
 }

@@ -146,7 +146,7 @@ def _handle_deploy(args):
 def _handle_call(args):
     logging.info('Calling %s:%s', args.module, args.entry)
 
-    conf = config.load(args.config)
+    conf = config.load(args.config, False)
     module = conf.get_module(args.module)
 
     asyncio.get_event_loop().run_until_complete(
@@ -156,7 +156,7 @@ def _handle_call(args):
 def _handle_input(args):
     logging.info('Triggering input of connection %d', args.connection)
 
-    conf = config.load(args.config)
+    conf = config.load(args.config, False)
     conn = conf.get_connection(args.connection)
 
     if conn.direct is None:
@@ -164,6 +164,9 @@ def _handle_input(args):
 
     asyncio.get_event_loop().run_until_complete(
                                     conn.to_module.node.input(conn, args.arg))
+
+    conn.nonce += 1
+    config.dump(conf, args.config)
 
 
 def main(raw_args=None):

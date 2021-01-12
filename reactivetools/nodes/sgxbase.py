@@ -111,7 +111,38 @@ class SGXBase(Node):
 
 
     async def input(self, connection, arg=None):
-        raise Error("not implemented")
+        assert connection.to_module.node is self
+
+        module_id = connection.to_module.id
+        entry_id = ReactiveEntrypoint.HandleInput
+
+        if arg is None:
+            data = b''
+        else:
+            data = arg
+
+        args = [base64.b64encode(tools.pack_int16(connection.nonce)).decode(),
+                base64.b64encode(data).decode(),
+                base64.b64encode(connection.key).decode()]
+
+        out = await tools.run_async_output(glob.ENCRYPTOR, *args)
+        cipher = base64.b64decode(out)
+
+        payload = tools.pack_int16(module_id)               + \
+                  tools.pack_int16(entry_id)                + \
+                  tools.pack_int16(connection.id)           + \
+                  cipher
+
+        command = CommandMessage(ReactiveCommand.Call,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Sending handle_input command of connection {} to {} on {}'.format(
+                     connection.id, connection.to_module.name, self.name)
+                )
 
 
     async def register_entrypoint(self, module, entry, frequency):
