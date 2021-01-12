@@ -1,0 +1,74 @@
+{
+    "nodes": [
+        {
+            "type": "native",
+            "name": "node1",
+            "ip_address": "127.0.0.1",
+            "reactive_port": 5000,
+            "deploy_port": 5000
+        }
+    ],
+    "modules": [
+        {
+            "type": "native",
+            "name": "sm1",
+            "node": "node1",
+            "features": [],
+            "id": 1,
+            "binary": "/tmp/tmphhbb4_zi/target/debug/sm1",
+            "key": "801c32f2dbc160c319337db79c27f4b7",
+            "inputs": {},
+            "outputs": {
+                "output": 0,
+                "output2": 1
+            },
+            "entrypoints": {
+                "entry": 2,
+                "entry2": 3,
+                "entry3": 4
+            }
+        },
+        {
+            "type": "native",
+            "name": "sm2",
+            "node": "node1",
+            "features": [],
+            "id": 2,
+            "binary": "/tmp/tmpaiiw9lsh/target/debug/sm2",
+            "key": "5c8e06318549a77bc93e67c7fe591203",
+            "inputs": {
+                "input": 0,
+                "input2": 1
+            },
+            "outputs": {},
+            "entrypoints": {
+                "entry": 2
+            }
+        }
+    ],
+    "connections": [
+        {
+            "from_module": "sm1",
+            "from_output": "output",
+            "to_module": "sm2",
+            "to_input": "input",
+            "encryption": "aes",
+            "key": "3babbdf9501f90e122dd2c5d92fc03cf",
+            "id": 0,
+            "direct": false,
+            "nonce": 0
+        },
+        {
+            "from_module": null,
+            "from_output": null,
+            "to_module": "sm2",
+            "to_input": "input",
+            "encryption": "aes",
+            "key": "b94720dd98778c8f2feae38aa7a110e3",
+            "id": 1,
+            "direct": true,
+            "nonce": 2
+        }
+    ],
+    "periodic-events": []
+}
