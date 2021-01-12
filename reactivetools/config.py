@@ -11,7 +11,8 @@ import logging
 
 from .nodes import SancusNode, SGXNode, NativeNode
 from .modules import SancusModule, SGXModule, NativeModule, Module
-from .connection import Connection, Encryption
+from .connection import Connection
+from .crypto import Encryption
 from .periodic_event import PeriodicEvent
 from . import tools
 

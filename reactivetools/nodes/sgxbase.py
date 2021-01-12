@@ -11,6 +11,7 @@ from .base import Node
 from ..connection import ConnectionIO
 from .. import glob
 from .. import tools
+from ..crypto import Encryption
 
 class Error(Exception):
     pass
@@ -121,12 +122,8 @@ class SGXBase(Node):
         else:
             data = arg
 
-        args = [base64.b64encode(tools.pack_int16(connection.nonce)).decode(),
-                base64.b64encode(data).decode(),
-                base64.b64encode(connection.key).decode()]
-
-        out = await tools.run_async_output(glob.ENCRYPTOR, *args)
-        cipher = base64.b64decode(out)
+        cipher = await connection.encryption.encrypt(connection.key,
+                    tools.pack_int16(connection.nonce), data)
 
         payload = tools.pack_int16(module_id)               + \
                   tools.pack_int16(entry_id)                + \

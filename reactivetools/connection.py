@@ -1,9 +1,8 @@
-from collections import namedtuple
 import asyncio
 import logging
 from enum import IntEnum
 
-from . import tools
+from .crypto import Encryption
 
 class Error(Exception):
     pass
@@ -51,8 +50,6 @@ class Connection:
     async def __establish_direct(self):
         to_node = self.to_module.node
 
-        print("Key: {}".format(self.key))
-
         await to_node.set_key(self.to_module, self.id, self.to_input,
                                      self.encryption, self.key, ConnectionIO.INPUT)
 
@@ -70,31 +67,3 @@ class Connection:
 class ConnectionIO(IntEnum):
     OUTPUT  = 0x0
     INPUT   = 0x1
-
-
-class Encryption(IntEnum):
-    AES         = 0x0
-    SPONGENT    = 0x1
-
-    @staticmethod
-    def from_str(str):
-        lower_str = str.lower()
-
-        if lower_str == "aes":
-            return Encryption.AES
-        if lower_str == "spongent":
-            return Encryption.SPONGENT
-
-        raise Error("No matching encryption type for {}".format(str))
-
-    def to_str(self):
-        if self == Encryption.AES:
-            return "aes"
-        if self == Encryption.SPONGENT:
-            return "spongent"
-
-    def get_key_size(self):
-        if self == Encryption.AES:
-            return 16
-        if self == Encryption.SPONGENT:
-            return tools.get_sancus_key_size()

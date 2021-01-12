@@ -9,7 +9,7 @@ from elftools.elf import elffile
 from .base import Module
 from ..nodes import SancusNode
 from .. import tools
-from ..connection import Encryption
+from ..crypto import Encryption
 
 
 class Error(Exception):

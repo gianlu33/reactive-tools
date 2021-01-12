@@ -7,7 +7,7 @@ from .base import Module
 from ..nodes import NativeNode
 from .. import tools
 from .. import glob
-from ..connection import Encryption
+from ..crypto import Encryption
 
 class Object():
     pass

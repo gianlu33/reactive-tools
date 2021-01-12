@@ -181,15 +181,13 @@ class SancusNode(Node):
         else:
             data = arg
 
-        cipher, tag = sancus.crypto.wrap(connection.key,
-                                        tools.pack_int16(connection.nonce),
-                                        data)
+        cipher = await connection.encryption.encrypt(connection.key,
+                    tools.pack_int16(connection.nonce), data)
 
         payload = tools.pack_int16(module_id)               + \
                   tools.pack_int16(entry_id)                + \
                   tools.pack_int16(connection.id)           + \
-                  cipher                                    + \
-                  tag
+                  cipher
 
         command = CommandMessage(ReactiveCommand.Call,
                                 Message(payload),
