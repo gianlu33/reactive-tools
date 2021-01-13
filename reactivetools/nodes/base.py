@@ -93,11 +93,10 @@ class Node(ABC):
                     tools.pack_int16(connection.nonce), data)
 
         payload = tools.pack_int16(module_id)               + \
-                  tools.pack_int16(entry_id)                + \
                   tools.pack_int16(connection.id)           + \
                   cipher
 
-        command = CommandMessage(ReactiveCommand.Call,
+        command = CommandMessage(ReactiveCommand.RemoteOutput,
                                 Message(payload),
                                 self.ip_address,
                                 self.reactive_port)
