@@ -6,6 +6,9 @@ import logging
 from abc import ABC, abstractmethod
 from enum import IntEnum
 
+from reactivenet import *
+
+from .. import tools
 
 class Error(Exception):
     pass
@@ -29,24 +32,102 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def connect(self, to_module, conn_id):
-        pass
-
-    @abstractmethod
     async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
         pass
 
-    @abstractmethod
+
+    # Default implementation of the following functions. If a specific architecture
+    # needs a different implementation, do it in the subclass (e.g., SancusNode)
+
+    async def connect(self, to_module, conn_id):
+        module_id = await to_module.get_id()
+
+        payload = tools.pack_int16(conn_id)                           + \
+                  tools.pack_int16(module_id)                         + \
+                  tools.pack_int16(to_module.node.reactive_port)      + \
+                  to_module.node.ip_address.packed
+
+        command = CommandMessage(ReactiveCommand.Connect,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Connecting id {} to {}'.format(conn_id, to_module.name))
+
+
     async def call(self, module, entry, arg=None):
-        pass
+        assert module.node is self
+        module_id, entry_id = \
+            await asyncio.gather(module.get_id(), module.get_entry_id(entry))
 
-    @abstractmethod
+        payload = tools.pack_int16(module_id)       + \
+                  tools.pack_int16(entry_id)        + \
+                  (b'' if arg is None else arg)
+
+        command = CommandMessage(ReactiveCommand.Call,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Sending call command to {}:{} ({}:{}) on {}'.format(
+                     module.name, entry, module_id, entry_id, self.name)
+                )
+
+
     async def input(self, connection, arg=None):
-        pass
+        assert connection.to_module.node is self
 
-    @abstractmethod
+        module_id = await connection.to_module.get_id()
+        entry_id = ReactiveEntrypoint.HandleInput
+
+        if arg is None:
+            data = b''
+        else:
+            data = arg
+
+        cipher = await connection.encryption.encrypt(connection.key,
+                    tools.pack_int16(connection.nonce), data)
+
+        payload = tools.pack_int16(module_id)               + \
+                  tools.pack_int16(entry_id)                + \
+                  tools.pack_int16(connection.id)           + \
+                  cipher
+
+        command = CommandMessage(ReactiveCommand.Call,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Sending handle_input command of connection {} to {} on {}'.format(
+                     connection.id, connection.to_module.name, self.name)
+                )
+
+
     async def register_entrypoint(self, module, entry, frequency):
-        pass
+        assert module.node is self
+        module_id, entry_id = \
+            await asyncio.gather(module.get_id(), module.get_entry_id(entry))
+
+        payload = tools.pack_int16(module_id)       + \
+                  tools.pack_int16(entry_id)        + \
+                  tools.pack_int32(frequency)
+
+        command = CommandMessage(ReactiveCommand.RegisterEntrypoint,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        await self._send_reactive_command(
+                command,
+                log='Sending RegisterEntrypoint command of {}:{} ({}:{}) on {}'.format(
+                     module.name, entry, module_id, entry_id, self.name)
+                )
 
 
     async def _send_reactive_command(self, command, log=None):

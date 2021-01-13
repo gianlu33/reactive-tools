@@ -1,6 +1,5 @@
 import base64
 import asyncio
-import sancus.crypto
 from enum import IntEnum
 
 from . import tools
@@ -39,8 +38,14 @@ class Encryption(IntEnum):
         if self == Encryption.SPONGENT:
             return await encrypt_spongent(key, ad, data)
 
+    async def mac(self, key, ad):
+        if self == Encryption.AES:
+            return await encrypt_aes(key, ad)
+        if self == Encryption.SPONGENT:
+            return await encrypt_spongent(key, ad)
 
-async def encrypt_aes(key, ad, data):
+
+async def encrypt_aes(key, ad, data=[]):
     args = [base64.b64encode(ad).decode(),
             base64.b64encode(data).decode(),
             base64.b64encode(key).decode()]
@@ -49,7 +54,12 @@ async def encrypt_aes(key, ad, data):
     return base64.b64decode(out)
 
 
-async def encrypt_spongent(key, nonce, data):
+async def encrypt_spongent(key, nonce, data=[]):
+    try:
+        import sancus.crypto
+    except:
+        raise Error("Cannot import sancus.crypto! Maybe the Sancus toolchain is not installed, or python modules are not in PYTHONPATH")
+
     cipher, tag = sancus.crypto.wrap(connection.key,
                                     tools.pack_int16(connection.nonce),
                                     data)

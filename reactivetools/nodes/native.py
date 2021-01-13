@@ -3,7 +3,7 @@ import aiofile
 
 from reactivenet import CommandMessageLoad
 
-from .sgxbase import SGXBase
+from .sgx import SGXBase
 from .. import tools
 
 
