@@ -54,14 +54,11 @@ async def encrypt_aes(key, ad, data=[]):
     return base64.b64decode(out)
 
 
-async def encrypt_spongent(key, nonce, data=[]):
+async def encrypt_spongent(key, ad, data=[]):
     try:
         import sancus.crypto
     except:
         raise Error("Cannot import sancus.crypto! Maybe the Sancus toolchain is not installed, or python modules are not in PYTHONPATH")
 
-    cipher, tag = sancus.crypto.wrap(connection.key,
-                                    tools.pack_int16(connection.nonce),
-                                    data)
-
+    cipher, tag = sancus.crypto.wrap(key, ad, data)
     return cipher + tag
