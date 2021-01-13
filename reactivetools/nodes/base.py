@@ -104,8 +104,8 @@ class Node(ABC):
 
         await self._send_reactive_command(
                 command,
-                log='Sending handle_input command of connection {} to {} on {}'.format(
-                     connection.id, connection.to_module.name, self.name)
+                log='Sending handle_input command of connection {}:{} to {} on {}'.format(
+                     connection.id, connection.name, connection.to_module.name, self.name)
                 )
 
 

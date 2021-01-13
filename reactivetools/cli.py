@@ -114,8 +114,7 @@ def _parse_args(args):
         required=True)
     call_parser.add_argument(
         '--connection',
-        help='Connection ID of the connection',
-        type=int,
+        help='Connection ID or name of the connection',
         required=True)
     call_parser.add_argument(
         '--arg',
@@ -154,10 +153,15 @@ def _handle_call(args):
 
 
 def _handle_input(args):
-    logging.info('Triggering input of connection %d', args.connection)
+    logging.info('Triggering input of connection %s', args.connection)
 
     conf = config.load(args.config, False)
-    conn = conf.get_connection(args.connection)
+
+    if args.connection.isnumeric():
+        conn = conf.get_connection_by_id(int(args.connection))
+    else:
+        conn = conf.get_connection_by_name(args.connection)
+
 
     if conn.direct is None:
         raise Error("Connection is not direct.")

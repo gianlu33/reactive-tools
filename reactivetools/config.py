@@ -46,12 +46,20 @@ class Config:
         raise Error('No module with name {}'.format(name))
 
 
-    def get_connection(self, id):
+    def get_connection_by_id(self, id):
         for c in self.connections:
             if c.id == id:
                 return c
 
         raise Error('No connection with ID {}'.format(id))
+
+
+    def get_connection_by_name(self, name):
+        for c in self.connections:
+            if c.name == name:
+                return c
+
+        raise Error('No connection with name {}'.format(name))
 
 
     async def install_async(self):
@@ -259,7 +267,13 @@ def _load_connection(conn_dict, config, deploy):
         key = _parse_key(conn_dict['key'])
         nonce = conn_dict['nonce']
 
-    return Connection(from_module, from_output, to_module, to_input, encryption, key, id, direct, nonce)
+
+    if 'name' not in conn_dict:
+        name = "conn{}".format(id)
+    else:
+        name = conn_dict['name']
+
+    return Connection(name, from_module, from_output, to_module, to_input, encryption, key, id, direct, nonce)
 
 
 def _load_periodic_event(events_dict, config):
@@ -448,6 +462,7 @@ def _(conn):
     from_module = None if conn.direct else conn.from_module.name
 
     return {
+        "name": conn.name,
         "from_module": from_module,
         "from_output": conn.from_output,
         "to_module": conn.to_module.name,
