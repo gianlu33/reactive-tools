@@ -4,6 +4,7 @@ import os
 import asyncio
 import base64
 import struct
+from enum import Enum
 
 sancus_key_size = None
 
@@ -19,6 +20,27 @@ class ProcessRunError(Exception):
 
 class Error(Exception):
     pass
+
+
+Verbosity = Enum('Verbosity', ['Normal', 'Verbose', 'Debug'])
+
+
+def get_verbosity():
+    log_at = logging.getLogger().isEnabledFor
+
+    if log_at(logging.DEBUG):
+        return Verbosity.Debug
+    elif log_at(logging.INFO):
+        return Verbosity.Verbose
+    else:
+        return Verbosity.Normal
+
+
+def get_stderr():
+    if get_verbosity() == Verbosity.Debug:
+        return None
+    else:
+        return open(os.devnull, "wb")
 
 
 def init_future(*results):
@@ -42,8 +64,10 @@ async def run_async(*args):
 
 async def run_async_muted(*args, output_file=os.devnull):
     logging.debug(' '.join(args))
+
     process = await asyncio.create_subprocess_exec(*args,
-                                            stdout=open(output_file, 'wb'))
+                                            stdout=open(output_file, 'wb'),
+                                            stderr=get_stderr())
     result = await process.wait()
 
     if result != 0:
@@ -53,7 +77,8 @@ async def run_async_muted(*args, output_file=os.devnull):
 async def run_async_background(*args):
     logging.debug(' '.join(args))
     process = await asyncio.create_subprocess_exec(*args,
-                                            stdout=open(os.devnull, 'wb'))
+                                            stdout=open(os.devnull, 'wb'),
+                                            stderr=get_stderr())
 
     return process
 
@@ -76,7 +101,8 @@ async def run_async_shell(*args):
     cmd = ' '.join(args)
     logging.debug(cmd)
     process = await asyncio.create_subprocess_shell(cmd,
-                                            stdout=open(os.devnull, 'wb'))
+                                            stdout=open(os.devnull, 'wb'),
+                                            stderr=get_stderr())
     result = await process.wait()
 
     if result != 0:

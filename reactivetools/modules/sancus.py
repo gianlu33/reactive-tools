@@ -110,9 +110,9 @@ class SancusModule(Module):
 
     @staticmethod
     def _get_build_config(verbosity):
-        if verbosity == _Verbosity.Debug:
+        if verbosity == tools.Verbosity.Debug:
             flags = ['--debug']
-        # elif verbosity == _Verbosity.Verbose:
+        # elif verbosity == tools.Verbosity.Verbose:
         #     flags = ['--verbose']
         else:
             flags = []
@@ -153,7 +153,7 @@ class SancusModule(Module):
         logging.info('Building module %s from %s',
                      self.name, ', '.join(map(str, self.files)))
 
-        config = self._get_build_config(_get_verbosity())
+        config = self._get_build_config(tools.get_verbosity())
         objects = {str(p): tools.create_tmp(suffix='.o') for p in self.files}
 
         cflags = config.cflags + self.cflags
@@ -179,7 +179,7 @@ class SancusModule(Module):
         try:
             import sancus.crypto
         except:
-            raise Error("Sancus python lib not installed! Check README.md")
+            raise Error("Cannot import sancus.crypto! Maybe the Sancus toolchain is not installed, or python modules are not in PYTHONPATH")
 
         linked_binary = await self.__link()
 
@@ -235,15 +235,3 @@ class SancusModule(Module):
 
 
 _BuildConfig = namedtuple('_BuildConfig', ['cc', 'cflags', 'ld', 'ldflags'])
-_Verbosity = Enum('_Verbosity', ['Normal', 'Verbose', 'Debug'])
-
-
-def _get_verbosity():
-    log_at = logging.getLogger().isEnabledFor
-
-    if log_at(logging.DEBUG):
-        return _Verbosity.Debug
-    elif log_at(logging.INFO):
-        return _Verbosity.Verbose
-    else:
-        return _Verbosity.Normal
