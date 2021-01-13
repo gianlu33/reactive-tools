@@ -1,3 +1,0 @@
-To retrieve the key of led_driver:
-
-sancus-crypto macs.elf --gen-sm-key led_driver --key 4078d505d82099ba

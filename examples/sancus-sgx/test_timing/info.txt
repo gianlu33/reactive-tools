@@ -1,7 +1,0 @@
-RTT test between (No)SGX and Sancus modules
-
-SGX ---> Sancus : request_data
-Sancus ---> SGX : send_data
-
-Start time: SGX, before sending request_data
-End time: SGX, after receiving send_data
