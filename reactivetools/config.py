@@ -5,7 +5,6 @@ from pathlib import Path
 import os
 import asyncio
 import functools
-import binascii
 import types
 import logging
 
