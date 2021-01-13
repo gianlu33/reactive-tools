@@ -84,7 +84,7 @@ class SancusNode(Node):
         conn_id_packed = tools.pack_int16(conn_id)
         ad = conn_id_packed + io_id + nonce
 
-        cypher = await encryption.SPONGENT.encrypt(module_key, ad, key)
+        cipher = await encryption.SPONGENT.encrypt(module_key, ad, key)
 
         # The payload format is [sm_id, entry_id, 16 bit nonce, index, wrapped(key), tag]
         # where the tag includes the nonce and the index.
@@ -112,7 +112,7 @@ class SancusNode(Node):
             raise Error("Received result code {}".format(str(res_code_enum)))
 
         set_key_tag = res.message.payload[2:]
-        expected_tag = encryption.SPONGENT.mac(module_key, nonce + res_code)
+        expected_tag = await encryption.SPONGENT.mac(module_key, nonce + res_code)
 
         if set_key_tag != expected_tag:
             raise Error('Module response has wrong tag')
