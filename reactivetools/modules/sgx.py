@@ -51,13 +51,13 @@ class SGXModule(Module):
 
     def __init__(self, name, node, priority, deployed, vendor_key, ra_settings,
                     features, id=None, binary=None, key=None, sgxs=None,
-                    signature=None, inputs=None, outputs=None, entrypoints=None):
+                    signature=None, data=None):
         super().__init__(name, node, priority, deployed)
 
-        self.__check_init_args(node, id, binary, key, sgxs, signature, inputs, outputs, entrypoints)
+        self.__check_init_args(node, id, binary, key, sgxs, signature, data)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
-        self.__generate_fut = tools.init_future(inputs, outputs, entrypoints)
+        self.__generate_fut = tools.init_future(data)
         self.__build_fut = tools.init_future(binary)
         self.__convert_sign_fut = tools.init_future(sgxs, signature)
         self.__ra_fut = tools.init_future(key)
@@ -73,22 +73,38 @@ class SGXModule(Module):
     # --- Properties --- #
 
     @property
+    async def data(self):
+        data, _key = await self.generate_code()
+        return data
+
+    @property
     async def inputs(self):
-        inputs, _outs, _entrys = await self.generate_code()
-        return inputs
+        data = await self.data
+        return data["inputs"]
 
 
     @property
     async def outputs(self):
-        _ins, outputs, _entrys = await self.generate_code()
-        return outputs
+        data = await self.data
+        return data["outputs"]
 
 
     @property
     async def entrypoints(self):
-        _ins, _outs, entrypoints = await self.generate_code()
-        return entrypoints
+        data = await self.data
+        return data["entrypoints"]
 
+
+    @property
+    async def handlers(self):
+        data = await self.data
+        return data["handlers"]
+
+
+    @property
+    async def requests(self):
+        data = await self.data
+        return data["requests"]
 
     @property
     async def key(self):
@@ -221,7 +237,7 @@ class SGXModule(Module):
 
     # --- Others --- #
 
-    def __check_init_args(self, node, id, binary, key, sgxs, signature, inputs, outputs, entrypoints):
+    def __check_init_args(self, node, id, binary, key, sgxs, signature, data):
         if not isinstance(node, self.get_supported_node_type()):
             clsname = lambda o: type(o).__name__
             raise Error('A {} cannot run on a {}'
@@ -229,7 +245,7 @@ class SGXModule(Module):
 
         # For now, either all optionals should be given or none. This might be
         # relaxed later if necessary.
-        optionals = (id, binary, key, sgxs, signature, inputs, outputs, entrypoints)
+        optionals = (id, binary, key, sgxs, signature, data)
 
         if None in optionals and any(map(lambda x: x is not None, optionals)):
             raise Error('Either all of the optional node parameters '
@@ -259,10 +275,10 @@ class SGXModule(Module):
         args.spkey = await self._get_ra_sp_pub_key()
         args.print = None
 
-        inputs, outputs, entrypoints, _ = rustsgxgen.generate(args)
+        data, _ = rustsgxgen.generate(args)
         logging.info("Generated code for module {}".format(self.name))
 
-        return inputs, outputs, entrypoints
+        return data
 
 
     async def __build(self):

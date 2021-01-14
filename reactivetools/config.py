@@ -208,13 +208,10 @@ def _load_sgx_module(mod_dict, config):
     key = _parse_key(mod_dict.get('key'))
     sgxs = mod_dict.get('sgxs')
     signature = mod_dict.get('signature')
-    inputs = mod_dict.get('inputs')
-    outputs = mod_dict.get('outputs')
-    entrypoints = mod_dict.get('entrypoints')
+    data = mod_dict.get('data')
 
     return SGXModule(name, node, priority, deployed, vendor_key, settings,
-                    features, id, binary, key, sgxs, signature, inputs, outputs,
-                    entrypoints)
+                    features, id, binary, key, sgxs, signature, data)
 
 
 def _load_native_module(mod_dict, config):
@@ -226,12 +223,10 @@ def _load_native_module(mod_dict, config):
     id = mod_dict.get('id')
     binary = mod_dict.get('binary')
     key = _parse_key(mod_dict.get('key'))
-    inputs = mod_dict.get('inputs')
-    outputs = mod_dict.get('outputs')
-    entrypoints = mod_dict.get('entrypoints')
+    data = mod_dict.get('data')
 
     return NativeModule(name, node, priority, deployed, features, id, binary, key,
-                                inputs, outputs, entrypoints)
+                                data)
 
 
 def _load_connection(conn_dict, config, deploy):
@@ -423,9 +418,7 @@ def _(module):
         "sgxs": _dump(module.sgxs),
         "signature": _dump(module.sig),
         "key": _dump(module.key),
-        "inputs": _dump(module.inputs),
-        "outputs": _dump(module.outputs),
-        "entrypoints": _dump(module.entrypoints)
+        "data": _dump(module.data)
     }
 
 
@@ -450,9 +443,7 @@ def _(module):
         "id": module.id,
         "binary": _dump(module.binary),
         "key": _dump(module.key),
-        "inputs": _dump(module.inputs),
-        "outputs": _dump(module.outputs),
-        "entrypoints": _dump(module.entrypoints)
+        "data": _dump(module.data)
     }
 
 

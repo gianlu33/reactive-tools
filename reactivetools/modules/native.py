@@ -18,13 +18,13 @@ class Error(Exception):
 
 class NativeModule(Module):
     def __init__(self, name, node, priority, deployed, features, id=None, binary=None,
-                    key=None, inputs=None, outputs=None, entrypoints=None):
+                    key=None, data=None):
         super().__init__(name, node, priority, deployed)
 
-        self.__check_init_args(node, id, binary, key, inputs, outputs, entrypoints)
+        self.__check_init_args(node, id, binary, key, data)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
-        self.__generate_fut = tools.init_future(inputs, outputs, entrypoints, key)
+        self.__generate_fut = tools.init_future(data, key)
         self.__build_fut = tools.init_future(binary)
 
         self.features = [] if features is None else features
@@ -35,26 +35,42 @@ class NativeModule(Module):
     # --- Properties --- #
 
     @property
+    async def data(self):
+        data, _key = await self.generate_code()
+        return data
+
+    @property
     async def inputs(self):
-        inputs, _outs, _entrys, _key = await self.generate_code()
-        return inputs
+        data = await self.data
+        return data["inputs"]
 
 
     @property
     async def outputs(self):
-        _ins, outputs, _entrys, _key = await self.generate_code()
-        return outputs
+        data = await self.data
+        return data["outputs"]
 
 
     @property
     async def entrypoints(self):
-        _ins, _outs, entrypoints, _key = await self.generate_code()
-        return entrypoints
+        data = await self.data
+        return data["entrypoints"]
 
 
     @property
+    async def handlers(self):
+        data = await self.data
+        return data["handlers"]
+
+
+    @property
+    async def requests(self):
+        data = await self.data
+        return data["requests"]
+
+    @property
     async def key(self):
-        _ins, _outs, _entrys, key = await self.generate_code()
+        _data, key = await self.generate_code()
         return key
 
 
@@ -137,7 +153,7 @@ class NativeModule(Module):
 
     # --- Others --- #
 
-    def __check_init_args(self, node, id, binary, key, inputs, outputs, entrypoints):
+    def __check_init_args(self, node, id, binary, key, data):
         if not isinstance(node, self.get_supported_node_type()):
             clsname = lambda o: type(o).__name__
             raise Error('A {} cannot run on a {}'
@@ -145,7 +161,7 @@ class NativeModule(Module):
 
         # For now, either all optionals should be given or none. This might be
         # relaxed later if necessary.
-        optionals = (id, binary, key, inputs, outputs, entrypoints)
+        optionals = (id, binary, key, data)
 
         if None in optionals and any(map(lambda x: x is not None, optionals)):
             raise Error('Either all of the optional node parameters '
@@ -175,10 +191,10 @@ class NativeModule(Module):
         args.spkey = None
         args.print = None
 
-        inputs, outputs, entrypoints, key = rustsgxgen.generate(args)
+        data, key = rustsgxgen.generate(args)
         logging.info("Generated code for module {}".format(self.name))
 
-        return inputs, outputs, entrypoints, key
+        return data, key
 
 
     async def __build(self):
