@@ -81,7 +81,6 @@ class Node(ABC):
         assert connection.to_module.node is self
 
         module_id = await connection.to_module.get_id()
-        entry_id = ReactiveEntrypoint.HandleInput
 
         if arg is None:
             data = b''
