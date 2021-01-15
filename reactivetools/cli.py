@@ -186,7 +186,7 @@ def _handle_output(args):
     if not conn.direct:
         raise Error("Connection is not direct.")
 
-    if not conn.to_output:
+    if not conn.to_input:
         raise Error("Not a output-input connection")
 
     asyncio.get_event_loop().run_until_complete(
