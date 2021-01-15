@@ -1,6 +1,7 @@
 import asyncio
 import collections
 import logging
+import binascii
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
@@ -76,7 +77,11 @@ class Node(ABC):
                      module.name, entry, module_id, entry_id, self.name)
                 )
 
-        raise Error("TODO: handle response")
+        if not response.ok():
+            logging.error("Received error code {}".format(str(response.code)))
+        else:
+            logging.info("Response: \"{}\"".format(
+                binascii.hexlify(response.message.payload).decode('ascii')))
 
 
     async def output(self, connection, arg=None):
@@ -136,7 +141,16 @@ class Node(ABC):
                      connection.id, connection.name, connection.to_module.name, self.name)
                 )
 
-        raise Error("TODO: handle response")
+        if not response.ok():
+            logging.error("Received error code {}".format(str(response.code)))
+            return
+
+        resp_encrypted = response.message.payload
+        plaintext = await connection.encryption.decrypt(connection.key,
+                    tools.pack_int16(connection.nonce + 1), resp_encrypted)
+
+        logging.info("Response: \"{}\"".format(
+            binascii.hexlify(plaintext).decode('ascii')))
 
 
     async def register_entrypoint(self, module, entry, frequency):
