@@ -71,12 +71,12 @@ class SancusNode(Node):
         return sm_id, symtab_file
 
 
-    async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
+    async def set_key(self, module, conn_id, conn_io, encryption, key):
         assert module.node is self
         assert encryption in module.get_supported_encryption()
 
         module_id, module_key, io_id = await asyncio.gather(
-                               module.id, module.key, module.get_io_id(io_name))
+                               module.id, module.key, conn_io.get_index(module))
 
         nonce = tools.pack_int16(self._get_nonce(module))
         io_id = tools.pack_int16(io_id)
@@ -100,7 +100,7 @@ class SancusNode(Node):
         res = await self._send_reactive_command(
                 command,
                 log='Setting key of {}:{} on {} to {}'.format(
-                     module.name, io_name, self.name,
+                     module.name, conn_io.name, self.name,
                      binascii.hexlify(key).decode('ascii'))
                 )
 

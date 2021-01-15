@@ -114,20 +114,16 @@ def load(file_name, deploy=True):
     config.modules = _load_list(contents['modules'],
                                 lambda m: _load_module(m, config))
 
-    try:
+    if 'connections' in contents:
         config.connections = _load_list(contents['connections'],
                                         lambda c: _load_connection(c, config, deploy))
-    except Exception as e:
-        logging.warning("Error while loading 'connections' section of input file")
-        logging.warning("{}".format(e))
+    else:
         config.connections = []
 
-    try:
+    if 'periodic-events' in contents:
         config.periodic_events = _load_list(contents['periodic-events'],
                                         lambda e: _load_periodic_event(e, config))
-    except Exception as e:
-        logging.warning("'periodic-events' section not loaded.")
-        #logging.warning("{}".format(e))
+    else:
         config.periodic_events = []
 
     return config
@@ -230,44 +226,35 @@ def _load_native_module(mod_dict, config):
 
 
 def _load_connection(conn_dict, config, deploy):
-    # direct connection: from Deployer to SM
-    # non-direct connection: from SM to SM
+    evaluate_rules(connection_rules(conn_dict, deploy))
+
     direct = conn_dict.get('direct')
-    if direct is None or not direct:
-        direct = False
-        from_module = config.get_module(conn_dict['from_module'])
-        from_output = conn_dict['from_output']
-    else:
-        from_module = None
-        from_output = None
-
+    from_module = config.get_module(conn_dict['from_module']) if is_present(conn_dict, 'from_module') else None
+    from_output = conn_dict.get('from_output')
+    from_request = conn_dict.get('from_request')
     to_module = config.get_module(conn_dict['to_module'])
-    to_input = conn_dict['to_input']
+    to_input = conn_dict.get('to_input')
+    to_handler = conn_dict.get('to_handler')
     encryption = Encryption.from_str(conn_dict['encryption'])
-
-    if from_module == to_module:
-        raise Error("Cannot establish a connection within the same module!")
-
-    if from_module is not None:
-        from_module.connections += 1
-    to_module.connections += 1
+    key = _parse_key(conn_dict.get('key'))
+    nonce = conn_dict.get('nonce')
+    id = conn_dict.get('id')
+    name = conn_dict.get('name')
 
     if deploy:
         id = Connection.get_connection_id() # incremental ID
         key = _generate_key(from_module, to_module, encryption) # auto-generated key
         nonce = 0 # only used for direct connections
-    else:
-        id = conn_dict['id']
-        key = _parse_key(conn_dict['key'])
-        nonce = conn_dict['nonce']
 
+    if from_module is not None:
+        from_module.connections += 1
+    to_module.connections += 1
 
-    if 'name' not in conn_dict:
+    if name is None:
         name = "conn{}".format(id)
-    else:
-        name = conn_dict['name']
 
-    return Connection(name, from_module, from_output, to_module, to_input, encryption, key, id, direct, nonce)
+    return Connection(name, from_module, from_output, from_request, to_module,
+        to_input, to_handler, encryption, key, id, nonce, direct)
 
 
 def _load_periodic_event(events_dict, config):
@@ -455,8 +442,10 @@ def _(conn):
         "name": conn.name,
         "from_module": from_module,
         "from_output": conn.from_output,
+        "from_request": conn.from_request,
         "to_module": conn.to_module.name,
         "to_input": conn.to_input,
+        "to_handler": conn.to_handler,
         "encryption": conn.encryption.to_str(),
         "key": _dump(conn.key),
         "id": conn.id,
@@ -504,3 +493,70 @@ def _(coro):
 @_dump.register(dict)
 def _(dict):
     return dict
+
+
+# Rules
+def evaluate_rules(rules):
+    bad_rules = [r for r in rules if not rules[r]]
+
+    for rule in bad_rules:
+        logging.error("Broken rule: {}".format(rule))
+
+    if bad_rules:
+        raise Error("Bad JSON configuration")
+
+
+def is_present(dict, key):
+    return key in dict and dict[key] is not None
+
+def has_value(dict, key, value):
+    return is_present(dict, key) and dict[key] == value
+
+def authorized_keys(dict, keys):
+    for key in dict:
+        if key not in keys:
+            return False
+
+    return True
+
+def connection_rules(dict, deploy):
+    return {
+        "to_module not present":
+            is_present(dict, "to_module"),
+        "encryption not present":
+            is_present(dict, "encryption"),
+
+        "either direct=True or from_module + from_{output, request}":
+            has_value(dict, "direct", True) != (is_present(dict, "from_module") \
+            and (is_present(dict, "from_output") != is_present(dict, "from_request"))),
+
+        "either one between to_input and to_handler":
+            is_present(dict, "to_input") != is_present(dict, "to_handler"),
+
+        "direct or from_output->to_input or from_request->to_handler":
+            has_value(dict, "direct", True) or (is_present(dict, "from_output") and is_present(dict, "to_input")) \
+            or (is_present(dict, "from_request") and is_present(dict, "to_handler")),
+
+        "key present ONLY after deployment":
+            (deploy and not is_present(dict, "key")) or (not deploy and is_present(dict, "key")),
+
+        "nonce present ONLY after deployment":
+            (deploy and not is_present(dict, "nonce")) or (not deploy and is_present(dict, "nonce")),
+
+        "id present ONLY after deployment":
+            (deploy and not is_present(dict, "id")) or (not deploy and is_present(dict, "id")),
+
+        "name mandatory after deployment":
+            deploy or (not deploy and is_present(dict, "name")),
+
+        "direct mandatory after deployment":
+            deploy or (not deploy and is_present(dict, "direct")),
+
+        "from_module and to_module must be different":
+            dict.get("from_module") != dict["to_module"],
+
+        "only authorized keys":
+            authorized_keys(dict, ["name", "from_module", "from_output",
+                "from_request", "to_module", "to_input", "to_handler",
+                "encryption", "key", "id", "direct", "nonce"])
+    }

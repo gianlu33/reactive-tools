@@ -27,16 +27,12 @@ class SGXBase(Node):
         pass
 
 
-    async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
+    async def set_key(self, module, conn_id, conn_io, encryption, key):
         assert module.node is self
         assert encryption in module.get_supported_encryption()
         await module.deploy()
 
-        if conn_io == ConnectionIO.OUTPUT:
-            io_id = await module.get_output_id(io_name)
-        else:
-            io_id = await module.get_input_id(io_name)
-
+        io_id = await conn_io.get_index(module)
         nonce = self._get_nonce(module)
 
         ad =    tools.pack_int8(encryption)                     + \
@@ -59,7 +55,7 @@ class SGXBase(Node):
         await self._send_reactive_command(
                 command,
                 log='Setting key of connection {} ({}:{}) on {} to {}'.format(
-                     conn_id, module.name, io_name, self.name,
+                     conn_id, module.name, conn_io.name, self.name,
                      binascii.hexlify(key).decode('ascii'))
                 )
 

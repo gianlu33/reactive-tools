@@ -86,10 +86,18 @@ class SancusModule(Module):
 
     async def get_entry_id(self, entry):
         # If it is a number, that is the ID (given by the deployer)
-        try:
+        if entry.isnumeric():
             return int(entry)
-        except:
-            return await self._get_entry_id(entry)
+
+        return await self._get_entry_id(entry)
+
+
+    async def get_request_id(self, request):
+        raise Error("Requests not supported in Sancus")
+
+
+    async def get_handler_id(self, handler):
+        raise Error("Handlers not supported in Sancus")
 
 
     async def get_key(self):

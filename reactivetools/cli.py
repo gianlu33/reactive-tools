@@ -118,7 +118,27 @@ def _parse_args(args):
         required=True)
     call_parser.add_argument(
         '--arg',
-        help='Argument to pass to the entry point (hex byte array)',
+        help='Argument to pass to the output (hex byte array)',
+        type=binascii.unhexlify,
+        default=None)
+
+
+    call_parser = subparsers.add_parser(
+        'request',
+        help='Trigger the request of a \"direct\" connection (between deployer and SM)')
+    call_parser.set_defaults(command_handler=_handle_request)
+    call_parser.add_argument(
+        '--config',
+        help='Specify configuration file to use '
+             '(the result of a previous "deploy" run)',
+        required=True)
+    call_parser.add_argument(
+        '--connection',
+        help='Connection ID or name of the connection',
+        required=True)
+    call_parser.add_argument(
+        '--arg',
+        help='Argument to pass to the request (hex byte array)',
         type=binascii.unhexlify,
         default=None)
 
@@ -163,13 +183,40 @@ def _handle_output(args):
         conn = conf.get_connection_by_name(args.connection)
 
 
-    if conn.direct is None:
+    if not conn.direct:
         raise Error("Connection is not direct.")
+
+    if not conn.to_output:
+        raise Error("Not a output-input connection")
 
     asyncio.get_event_loop().run_until_complete(
                                     conn.to_module.node.output(conn, args.arg))
 
     conn.nonce += 1
+    config.dump(conf, args.config)
+
+
+def _handle_request(args):
+    logging.info('Triggering request of connection %s', args.connection)
+
+    conf = config.load(args.config, False)
+
+    if args.connection.isnumeric():
+        conn = conf.get_connection_by_id(int(args.connection))
+    else:
+        conn = conf.get_connection_by_name(args.connection)
+
+
+    if not conn.direct:
+        raise Error("Connection is not direct.")
+
+    if not conn.to_handler:
+        raise Error("Not a request-handler connection")
+
+    asyncio.get_event_loop().run_until_complete(
+                                    conn.to_module.node.request(conn, args.arg))
+
+    conn.nonce += 2
     config.dump(conf, args.config)
 
 

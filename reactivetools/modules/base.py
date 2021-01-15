@@ -33,6 +33,14 @@ class Module(ABC):
         pass
 
     @abstractmethod
+    async def get_request_id(self, request):
+        pass
+
+    @abstractmethod
+    async def get_handler_id(self, handler):
+        pass
+
+    @abstractmethod
     async def get_key(self):
         pass
 

@@ -70,11 +70,13 @@ class Node(ABC):
                                 self.ip_address,
                                 self.reactive_port)
 
-        await self._send_reactive_command(
+        response = await self._send_reactive_command(
                 command,
                 log='Sending call command to {}:{} ({}:{}) on {}'.format(
                      module.name, entry, module_id, entry_id, self.name)
                 )
+
+        raise Error("TODO: handle response")
 
 
     async def output(self, connection, arg=None):
@@ -101,9 +103,40 @@ class Node(ABC):
 
         await self._send_reactive_command(
                 command,
-                log='Sending handle_input command of connection {}:{} to {} on {}'.format(
+                log='Sending handle_output command of connection {}:{} to {} on {}'.format(
                      connection.id, connection.name, connection.to_module.name, self.name)
                 )
+
+
+    async def request(self, connection, arg=None):
+        assert connection.to_module.node is self
+
+        module_id = await connection.to_module.get_id()
+
+        if arg is None:
+            data = b''
+        else:
+            data = arg
+
+        cipher = await connection.encryption.encrypt(connection.key,
+                    tools.pack_int16(connection.nonce), data)
+
+        payload = tools.pack_int16(module_id)               + \
+                  tools.pack_int16(connection.id)           + \
+                  cipher
+
+        command = CommandMessage(ReactiveCommand.RemoteRequest,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        response = await self._send_reactive_command(
+                command,
+                log='Sending handle_request command of connection {}:{} to {} on {}'.format(
+                     connection.id, connection.name, connection.to_module.name, self.name)
+                )
+
+        raise Error("TODO: handle response")
 
 
     async def register_entrypoint(self, module, entry, frequency):

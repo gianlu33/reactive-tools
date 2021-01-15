@@ -135,6 +135,30 @@ class NativeModule(Module):
             return entrypoints[entry]
 
 
+    async def get_request_id(self, request):
+        if isinstance(request, int):
+            return request
+
+        requests = await self.requests
+
+        if request not in requests:
+            raise Error("Request not present in requests")
+
+        return requests[request]
+
+
+    async def get_handler_id(self, handler):
+        if isinstance(handler, int):
+            return handler
+
+        handlers = await self.handlers
+
+        if handler not in handlers:
+            raise Error("Handler not present in handlers")
+
+        return handlers[handler]
+
+
     async def get_key(self):
         return await self.key
 

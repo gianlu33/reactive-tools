@@ -184,15 +184,39 @@ class SGXModule(Module):
 
 
     async def get_entry_id(self, entry):
-        try:
+        if entry.isnumeric():
             return int(entry)
-        except:
-            entrypoints = await self.entrypoints
 
-            if entry not in entrypoints:
-                raise Error("Entry not present in entrypoints")
+        entrypoints = await self.entrypoints
 
-            return entrypoints[entry]
+        if entry not in entrypoints:
+            raise Error("Entry not present in entrypoints")
+
+        return entrypoints[entry]
+
+
+    async def get_request_id(self, request):
+        if isinstance(request, int):
+            return request
+
+        requests = await self.requests
+
+        if request not in requests:
+            raise Error("Request not present in requests")
+
+        return requests[request]
+
+
+    async def get_handler_id(self, handler):
+        if isinstance(handler, int):
+            return handler
+
+        handlers = await self.handlers
+
+        if handler not in handlers:
+            raise Error("Handler not present in handlers")
+
+        return handlers[handler]
 
 
     async def get_key(self):
