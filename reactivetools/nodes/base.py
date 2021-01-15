@@ -77,7 +77,7 @@ class Node(ABC):
                 )
 
 
-    async def input(self, connection, arg=None):
+    async def output(self, connection, arg=None):
         assert connection.to_module.node is self
 
         module_id = await connection.to_module.get_id()

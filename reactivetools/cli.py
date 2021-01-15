@@ -104,9 +104,9 @@ def _parse_args(args):
         default=None)
 
     call_parser = subparsers.add_parser(
-        'input',
-        help='Trigger a SM\'s input of a \"direct\" connection (between deployer and SM)')
-    call_parser.set_defaults(command_handler=_handle_input)
+        'output',
+        help='Trigger the output of a \"direct\" connection (between deployer and SM)')
+    call_parser.set_defaults(command_handler=_handle_output)
     call_parser.add_argument(
         '--config',
         help='Specify configuration file to use '
@@ -152,8 +152,8 @@ def _handle_call(args):
                                             module.call(args.entry, args.arg))
 
 
-def _handle_input(args):
-    logging.info('Triggering input of connection %s', args.connection)
+def _handle_output(args):
+    logging.info('Triggering output of connection %s', args.connection)
 
     conf = config.load(args.config, False)
 
@@ -167,7 +167,7 @@ def _handle_input(args):
         raise Error("Connection is not direct.")
 
     asyncio.get_event_loop().run_until_complete(
-                                    conn.to_module.node.input(conn, args.arg))
+                                    conn.to_module.node.output(conn, args.arg))
 
     conn.nonce += 1
     config.dump(conf, args.config)
