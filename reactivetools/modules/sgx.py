@@ -74,7 +74,7 @@ class SGXModule(Module):
 
     @property
     async def data(self):
-        data, _key = await self.generate_code()
+        data = await self.generate_code()
         return data
 
     @property
