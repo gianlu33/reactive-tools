@@ -4,6 +4,7 @@ import asyncio
 import pdb
 import sys
 import binascii
+import os
 
 from . import config
 from . import tools
@@ -68,7 +69,11 @@ def _parse_args(args):
     deploy_parser.set_defaults(command_handler=_handle_deploy)
     deploy_parser.add_argument(
         'config',
-        help='Configuration file describing the network')
+        help='Name of the configuration file describing the network')
+    deploy_parser.add_argument(
+        '--workspace',
+        help='Root directory containing all the modules and the configuration file',
+        default=".")
     deploy_parser.add_argument(
         '--result',
         help='File to write the resulting configuration to')
@@ -88,7 +93,11 @@ def _parse_args(args):
     build_parser.set_defaults(command_handler=_handle_build)
     build_parser.add_argument(
         'config',
-        help='Configuration file describing the network')
+        help='Name of the configuration file describing the network')
+    build_parser.add_argument(
+        '--workspace',
+        help='Root directory containing all the modules and the configuration file',
+        default=".")
 
     # call
     call_parser = subparsers.add_parser(
@@ -160,6 +169,7 @@ def _parse_args(args):
 def _handle_deploy(args):
     logging.info('Deploying %s', args.config)
 
+    os.chdir(args.workspace)
     conf = config.load(args.config)
 
     if args.deploy_in_order:
@@ -177,6 +187,7 @@ def _handle_deploy(args):
 def _handle_build(args):
     logging.info('Building %s', args.config)
 
+    os.chdir(args.workspace)
     conf = config.load(args.config)
     conf.build()
     conf.cleanup()
