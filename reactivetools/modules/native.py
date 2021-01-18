@@ -30,7 +30,7 @@ class NativeModule(Module):
         self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
-        self.output = tools.create_tmp_dir()
+        self.output = "build/{}".format(name)
 
     # --- Properties --- #
 
