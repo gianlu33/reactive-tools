@@ -9,6 +9,10 @@ class Module(ABC):
         self.connections = 0
 
     @abstractmethod
+    async def build(self):
+        pass
+
+    @abstractmethod
     async def deploy(self):
         pass
 

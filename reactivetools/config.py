@@ -87,12 +87,22 @@ class Config:
                                 self.deploy_modules_ordered_async())
 
 
-    def cleanup(self):
-        asyncio.get_event_loop().run_until_complete(self.cleanup_async())
+    async def build_async(self):
+        futures = [module.build() for module in self.modules]
+        await asyncio.gather(*futures)
+
+
+    def build(self):
+        asyncio.get_event_loop().run_until_complete(self.build_async())
 
 
     async def cleanup_async(self):
         await SGXModule.kill_ra_sp()
+         # Add other instructions here if needed
+
+
+    def cleanup(self):
+        asyncio.get_event_loop().run_until_complete(self.cleanup_async())
 
 
     async def deploy_priority_modules(self):

@@ -116,10 +116,7 @@ class SGXModule(Module):
 
     @property
     async def binary(self):
-        if self.__build_fut is None:
-            self.__build_fut = asyncio.ensure_future(self.__build())
-
-        return await self.__build_fut
+        return await self.build()
 
 
     @property
@@ -143,6 +140,13 @@ class SGXModule(Module):
 
 
     # --- Implement abstract methods --- #
+
+    async def build(self):
+        if self.__build_fut is None:
+            self.__build_fut = asyncio.ensure_future(self.__build())
+
+        return await self.__build_fut
+
 
     async def call(self, entry, arg=None):
         return await self.node.call(self, entry, arg)

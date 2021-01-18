@@ -76,13 +76,17 @@ class NativeModule(Module):
 
     @property
     async def binary(self):
+        return await self.build()
+
+
+    # --- Implement abstract methods --- #
+
+    async def build(self):
         if self.__build_fut is None:
             self.__build_fut = asyncio.ensure_future(self.__build())
 
         return await self.__build_fut
 
-
-    # --- Implement abstract methods --- #
 
     async def deploy(self):
         if self.__deploy_fut is None:

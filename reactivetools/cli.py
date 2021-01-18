@@ -61,6 +61,7 @@ def _parse_args(args):
     # Workaround a Python bug. See http://bugs.python.org/issue9253#msg186387
     subparsers.required = True
 
+    # deploy
     deploy_parser = subparsers.add_parser(
         'deploy',
         help='Deploy a reactive network')
@@ -80,6 +81,16 @@ def _parse_args(args):
         help='Override default Sancus key length, in bits (for spongent connections)',
         type=int)
 
+    # build
+    build_parser = subparsers.add_parser(
+        'build',
+        help='Build the executables of the SMs as declared in the input configuration file (for debugging)')
+    build_parser.set_defaults(command_handler=_handle_build)
+    build_parser.add_argument(
+        'config',
+        help='Configuration file describing the network')
+
+    # call
     call_parser = subparsers.add_parser(
         'call',
         help='Call a deployed module')
@@ -103,40 +114,41 @@ def _parse_args(args):
         type=binascii.unhexlify,
         default=None)
 
-    call_parser = subparsers.add_parser(
+    # output
+    output_parser = subparsers.add_parser(
         'output',
         help='Trigger the output of a \"direct\" connection (between deployer and SM)')
-    call_parser.set_defaults(command_handler=_handle_output)
-    call_parser.add_argument(
+    output_parser.set_defaults(command_handler=_handle_output)
+    output_parser.add_argument(
         '--config',
         help='Specify configuration file to use '
              '(the result of a previous "deploy" run)',
         required=True)
-    call_parser.add_argument(
+    output_parser.add_argument(
         '--connection',
         help='Connection ID or name of the connection',
         required=True)
-    call_parser.add_argument(
+    output_parser.add_argument(
         '--arg',
         help='Argument to pass to the output (hex byte array)',
         type=binascii.unhexlify,
         default=None)
 
-
-    call_parser = subparsers.add_parser(
+    # request
+    request_parser = subparsers.add_parser(
         'request',
         help='Trigger the request of a \"direct\" connection (between deployer and SM)')
-    call_parser.set_defaults(command_handler=_handle_request)
-    call_parser.add_argument(
+    request_parser.set_defaults(command_handler=_handle_request)
+    request_parser.add_argument(
         '--config',
         help='Specify configuration file to use '
              '(the result of a previous "deploy" run)',
         required=True)
-    call_parser.add_argument(
+    request_parser.add_argument(
         '--connection',
         help='Connection ID or name of the connection',
         required=True)
-    call_parser.add_argument(
+    request_parser.add_argument(
         '--arg',
         help='Argument to pass to the request (hex byte array)',
         type=binascii.unhexlify,
@@ -162,6 +174,14 @@ def _handle_deploy(args):
     conf.cleanup()
 
 
+def _handle_build(args):
+    logging.info('Building %s', args.config)
+
+    conf = config.load(args.config)
+    conf.build()
+    conf.cleanup()
+
+
 def _handle_call(args):
     logging.info('Calling %s:%s', args.module, args.entry)
 
@@ -170,6 +190,8 @@ def _handle_call(args):
 
     asyncio.get_event_loop().run_until_complete(
                                             module.call(args.entry, args.arg))
+
+    conf.cleanup()
 
 
 def _handle_output(args):
@@ -195,6 +217,8 @@ def _handle_output(args):
     conn.nonce += 1
     config.dump(conf, args.config)
 
+    conf.cleanup()
+
 
 def _handle_request(args):
     logging.info('Triggering request of connection %s', args.connection)
@@ -218,6 +242,8 @@ def _handle_request(args):
 
     conn.nonce += 2
     config.dump(conf, args.config)
+
+    conf.cleanup()
 
 
 def main(raw_args=None):

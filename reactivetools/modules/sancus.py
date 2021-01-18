@@ -36,10 +36,7 @@ class SancusModule(Module):
 
     @property
     async def binary(self):
-        if self.__build_fut is None:
-            self.__build_fut = asyncio.ensure_future(self.__build())
-
-        return await self.__build_fut
+        return await self.build()
 
     @property
     async def id(self):
@@ -60,6 +57,13 @@ class SancusModule(Module):
 
 
     # --- Implement abstract methods --- #
+
+    async def build(self):
+        if self.__build_fut is None:
+            self.__build_fut = asyncio.ensure_future(self.__build())
+
+        return await self.__build_fut
+
 
     async def deploy(self):
         if self.__deploy_fut is None:
