@@ -53,16 +53,7 @@ def init_future(*results):
     return fut
 
 
-async def run_async(*args):
-    logging.debug(' '.join(args))
-    process = await asyncio.create_subprocess_exec(*args)
-    result = await process.wait()
-
-    if result != 0:
-        raise ProcessRunError(args, result)
-
-
-async def run_async_muted(*args, output_file=os.devnull):
+async def run_async(*args, output_file=os.devnull):
     logging.debug(' '.join(args))
 
     process = await asyncio.create_subprocess_exec(*args,

@@ -28,7 +28,7 @@ async def _generate_sp_keys():
     args_public = "-f {}.pub -e -m pem".format(priv).split()
 
     await tools.run_async_shell(cmd, *args_private)
-    await tools.run_async_muted(cmd, *args_public, output_file=pub)
+    await tools.run_async(cmd, *args_public, output_file=pub)
 
     return pub, priv
 
@@ -36,7 +36,7 @@ async def _generate_sp_keys():
 async def _run_ra_sp():
     # kill old ra_sp (if running)
     try:
-        await tools.run_async_muted("pkill", "-f", glob.RA_SP)
+        await tools.run_async("pkill", "-f", glob.RA_SP)
     except:
         pass
 
@@ -317,7 +317,7 @@ class SGXModule(Module):
             features = "--features " + " ".join(self.features)
 
         cmd = glob.BUILD_SGX_APP.format(features, self.output).split()
-        await tools.run_async_muted(*cmd)
+        await tools.run_async(*cmd)
 
         binary = "{}/target/{}/{}/{}".format(self.output, glob.SGX_TARGET, glob.BUILD_MODE, self.name)
 
@@ -335,8 +335,8 @@ class SGXModule(Module):
         cmd_convert = glob.CONVERT_SGX.format(binary).split()
         cmd_sign = glob.SIGN_SGX.format(self.vendor_key, sgxs, sig).split()
 
-        await tools.run_async_muted(*cmd_convert)
-        await tools.run_async_muted(*cmd_sign)
+        await tools.run_async(*cmd_convert)
+        await tools.run_async(*cmd_sign)
 
         logging.info("Converted & signed module {}".format(self.name))
 

@@ -208,7 +208,7 @@ class SancusModule(Module):
         # NOTE: we use '--noinhibit-exec' flag because the linker complains
         #       if the addresses of .bss section are not aligned to 2 bytes
         #       using this flag instead, the output file is still generated
-        await tools.run_async_muted('msp430-ld', '-T', await self.symtab,
+        await tools.run_async('msp430-ld', '-T', await self.symtab,
                       '-o', linked_binary, '--noinhibit-exec', await self.binary)
         return linked_binary
 
@@ -236,6 +236,9 @@ class SancusModule(Module):
 
 
     async def __get_symbol(self, name):
+        if not await self.binary:
+            raise Error("ELF file not present for {}, cannot extract symbol ID of {}".format(self.name, name))
+
         with open(await self.binary, 'rb') as f:
             elf = elffile.ELFFile(f)
             for section in elf.iter_sections():

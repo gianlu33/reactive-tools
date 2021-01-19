@@ -60,10 +60,10 @@ class Connection:
             self.from_index = None
         else:
             self.direct = False # to avoid assigning None
-            self.from_index = ConnectionIndex(ConnectionIO.OUTPUT, from_output) if from_output \
+            self.from_index = ConnectionIndex(ConnectionIO.OUTPUT, from_output) if from_output is not None \
                 else ConnectionIndex(ConnectionIO.REQUEST, from_request)
 
-        self.to_index = ConnectionIndex(ConnectionIO.INPUT, to_input) if to_input \
+        self.to_index = ConnectionIndex(ConnectionIO.INPUT, to_input) if to_input is not None \
             else ConnectionIndex(ConnectionIO.HANDLER, to_handler)
 
     async def establish(self):

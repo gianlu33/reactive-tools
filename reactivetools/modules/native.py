@@ -233,7 +233,7 @@ class NativeModule(Module):
             features = "--features " + " ".join(self.features)
 
         cmd = glob.BUILD_APP.format(features, self.output).split()
-        await tools.run_async_muted(*cmd)
+        await tools.run_async(*cmd)
 
         binary = "{}/target/{}/{}".format(self.output, glob.BUILD_MODE, self.name)
 
