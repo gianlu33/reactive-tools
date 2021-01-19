@@ -278,8 +278,8 @@ def _load_periodic_event(events_dict, config):
 def _generate_key(module1, module2, encryption):
     if (module1 is not None and encryption not in module1.get_supported_encryption()) \
         or encryption not in module2.get_supported_encryption():
-       raise Error('Encryption "{}" not supported between {} and {}'.format(
-            encryption, module1.name, module2.name))
+       raise Error('Encryption {} not supported between {} and {}'.format(
+            str(encryption), module1.name, module2.name))
 
     return tools.generate_key(encryption.get_key_size())
 
