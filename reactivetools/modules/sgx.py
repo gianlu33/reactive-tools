@@ -9,6 +9,8 @@ from ..nodes import SGXNode
 from .. import tools
 from .. import glob
 from ..crypto import Encryption
+from ..dumpers import *
+from ..loaders import *
 
 class Object():
     pass
@@ -69,6 +71,41 @@ class SGXModule(Module):
         self.port = self.node.reactive_port + self.id
         self.output = "build/{}".format(name)
 
+
+    @staticmethod
+    def load(mod_dict, node_obj):
+        name = mod_dict['name']
+        node = node_obj
+        priority = mod_dict.get('priority')
+        deployed = mod_dict.get('deployed')
+        vendor_key = mod_dict['vendor_key']
+        settings = mod_dict['ra_settings']
+        features = mod_dict.get('features')
+        id = mod_dict.get('id')
+        binary = mod_dict.get('binary')
+        key = parse_key(mod_dict.get('key'))
+        sgxs = mod_dict.get('sgxs')
+        signature = mod_dict.get('signature')
+        data = mod_dict.get('data')
+
+        return SGXModule(name, node, priority, deployed, vendor_key, settings,
+                        features, id, binary, key, sgxs, signature, data)
+
+    def dump(self):
+        return {
+            "type": "sgx",
+            "name": self.name,
+            "node": self.node.name,
+            "vendor_key": self.vendor_key,
+            "ra_settings": self.ra_settings,
+            "features": self.features,
+            "id": self.id,
+            "binary": dump(self.binary),
+            "sgxs": dump(self.sgxs),
+            "signature": dump(self.sig),
+            "key": dump(self.key),
+            "data": dump(self.data)
+        }
 
     # --- Properties --- #
 
@@ -254,7 +291,7 @@ class SGXModule(Module):
 
 
     @staticmethod
-    async def kill_ra_sp():
+    async def cleanup():
         try:
             process = await SGXModule._ra_sp_fut
             process.kill()

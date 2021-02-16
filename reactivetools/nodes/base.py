@@ -27,9 +27,22 @@ class Node(ABC):
         else:
             self.__lock = None
 
+
+    @staticmethod
+    @abstractmethod
+    def load(node_dict):
+        pass
+
+
+    @abstractmethod
+    def dump(self):
+        pass
+
+
     @abstractmethod
     async def deploy(self, module):
         pass
+
 
     @abstractmethod
     async def set_key(self, module, conn_id, io_name, encryption, key, conn_io):
@@ -38,6 +51,11 @@ class Node(ABC):
 
     # Default implementation of the following functions. If a specific architecture
     # needs a different implementation, do it in the subclass (e.g., SancusNode)
+
+    @staticmethod
+    async def cleanup():
+        pass
+
 
     async def connect(self, to_module, conn_id):
         module_id = await to_module.get_id()

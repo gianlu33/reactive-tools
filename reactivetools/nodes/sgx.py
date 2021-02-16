@@ -3,6 +3,7 @@ import aiofile
 import logging
 from abc import ABC, abstractmethod
 import binascii
+import ipaddress
 
 from reactivenet import *
 
@@ -11,6 +12,8 @@ from ..connection import ConnectionIO
 from .. import glob
 from .. import tools
 from ..crypto import Encryption
+from ..dumpers import *
+from ..loaders import *
 
 class Error(Exception):
     pass
@@ -68,6 +71,27 @@ class SGXBase(Node):
 
 
 class SGXNode(SGXBase):
+
+    @staticmethod
+    def load(node_dict):
+        name = node_dict['name']
+        ip_address = ipaddress.ip_address(node_dict['ip_address'])
+        reactive_port = node_dict['reactive_port']
+        deploy_port = node_dict.get('deploy_port', reactive_port)
+
+        return SGXNode(name, ip_address, reactive_port, deploy_port)
+
+
+    def dump(self):
+        return {
+            "type": "sgx",
+            "name": self.name,
+            "ip_address": str(self.ip_address),
+            "reactive_port": self.reactive_port,
+            "deploy_port": self.deploy_port
+        }
+
+
     async def deploy(self, module):
         if module.deployed is not None:
             return

@@ -179,7 +179,7 @@ def _handle_deploy(args):
 
     if args.result is not None:
         logging.info('Writing post-deployment configuration to %s', args.result)
-        config.dump(conf, args.result)
+        config.dump_config(conf, args.result)
 
     conf.cleanup()
 
@@ -226,7 +226,7 @@ def _handle_output(args):
                                     conn.to_module.node.output(conn, args.arg))
 
     conn.nonce += 1
-    config.dump(conf, args.config)
+    config.dump_config(conf, args.config)
 
     conf.cleanup()
 
@@ -252,7 +252,7 @@ def _handle_request(args):
                                     conn.to_module.node.request(conn, args.arg))
 
     conn.nonce += 2
-    config.dump(conf, args.config)
+    config.dump_config(conf, args.config)
 
     conf.cleanup()
 

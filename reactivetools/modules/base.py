@@ -8,6 +8,16 @@ class Module(ABC):
         self.deployed = deployed
         self.connections = 0
 
+
+    @staticmethod
+    @abstractmethod
+    def load(mod_dict, node_obj):
+        pass
+
+    @abstractmethod
+    def dump(self):
+        pass
+
     @abstractmethod
     async def build(self):
         pass
@@ -54,4 +64,10 @@ class Module(ABC):
 
     @abstractmethod
     def get_supported_encryption():
+        pass
+
+
+    # Default implementation. Change if needed
+    @staticmethod
+    async def cleanup():
         pass

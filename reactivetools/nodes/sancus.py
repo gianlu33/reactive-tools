@@ -2,13 +2,15 @@ import asyncio
 import logging
 import binascii
 import aiofile
+import ipaddress
 from enum import IntEnum
 
 from reactivenet import *
 
 from .base import Node
 from .. import tools
-
+from ..dumpers import *
+from ..loaders import *
 
 class Error(Exception):
     pass
@@ -28,6 +30,31 @@ class SancusNode(Node):
 
         self.vendor_id = vendor_id
         self.vendor_key = vendor_key
+
+
+    @staticmethod
+    def load(node_dict):
+        name = node_dict['name']
+        vendor_id = parse_vendor_id(node_dict['vendor_id'])
+        vendor_key = parse_sancus_key(node_dict['vendor_key'])
+        ip_address = ipaddress.ip_address(node_dict['ip_address'])
+        reactive_port = node_dict['reactive_port']
+        deploy_port = node_dict.get('deploy_port', reactive_port)
+
+        return SancusNode(name, vendor_id, vendor_key,
+                          ip_address, reactive_port, deploy_port)
+
+
+    def dump(self):
+        return {
+            "type": "sancus",
+            "name": self.name,
+            "ip_address": str(self.ip_address),
+            "vendor_id": self.vendor_id,
+            "vendor_key": dump(self.vendor_key),
+            "reactive_port": self.reactive_port,
+            "deploy_port": self.deploy_port
+        }
 
 
     async def deploy(self, module):

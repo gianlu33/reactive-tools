@@ -10,7 +10,8 @@ from .base import Module
 from ..nodes import SancusNode
 from .. import tools
 from ..crypto import Encryption
-
+from ..dumpers import *
+from ..loaders import *
 
 class Error(Exception):
     pass
@@ -30,6 +31,37 @@ class SancusModule(Module):
         self.__build_fut = tools.init_future(binary)
         self.__deploy_fut = tools.init_future(id, symtab)
         self.__key_fut = tools.init_future(key)
+
+
+    @staticmethod
+    def load(mod_dict, node_obj):
+        name = mod_dict['name']
+        node = node_obj
+        priority = mod_dict.get('priority')
+        deployed = mod_dict.get('deployed')
+        files = load_list(mod_dict['files'],
+                           lambda f: parse_file_name(f))
+        cflags = load_list(mod_dict.get('cflags'))
+        ldflags = load_list(mod_dict.get('ldflags'))
+        binary = mod_dict.get('binary')
+        id = mod_dict.get('id')
+        symtab = mod_dict.get('symtab')
+        key = parse_sancus_key(mod_dict.get('key'))
+        return SancusModule(name, node, priority, deployed, files, cflags, ldflags,
+                            binary, id, symtab, key)
+
+
+    def dump(self):
+        return {
+            "type": "sancus",
+            "name": self.name,
+            "files": dump(self.files),
+            "node": self.node.name,
+            "binary": dump(self.binary),
+            "symtab": dump(self.symtab),
+            "id": dump(self.id),
+            "key": dump(self.key)
+        }
 
 
     # --- Properties --- #

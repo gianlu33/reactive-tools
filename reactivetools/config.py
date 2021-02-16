@@ -1,34 +1,32 @@
 import json
 import binascii
 import ipaddress
-from pathlib import Path
 import os
 import asyncio
-import functools
-import types
 import logging
 
-from .nodes import SancusNode, SGXNode, NativeNode
-from .modules import SancusModule, SGXModule, NativeModule, Module
+from .modules import Module
+from .nodes import Node
 from .connection import Connection
 from .crypto import Encryption
 from .periodic_event import PeriodicEvent
 from . import tools
+from .dumpers import *
+from .loaders import *
 
+from .nodes import node_funcs, node_cleanup_coros
+from .modules import module_funcs, module_cleanup_coros
 
 class Error(Exception):
     pass
 
 
 class Config:
-    def __init__(self, file_name):
-        self.path = Path(file_name).resolve()
+    def __init__(self):
         self.nodes = []
         self.modules = []
         self.connections = []
 
-    def get_dir(self):
-        return self.path.parent
 
     def get_node(self, name):
         for n in self.nodes:
@@ -97,8 +95,8 @@ class Config:
 
 
     async def cleanup_async(self):
-        await SGXModule.kill_ra_sp()
-         # Add other instructions here if needed
+        coros = list(map(lambda c: c(), node_cleanup_coros + module_cleanup_coros))
+        await asyncio.gather(*coros)
 
 
     def cleanup(self):
@@ -118,20 +116,20 @@ def load(file_name, deploy=True):
     with open(file_name, 'r') as f:
         contents = json.load(f)
 
-    config = Config(file_name)
+    config = Config()
 
-    config.nodes = _load_list(contents['nodes'], _load_node)
-    config.modules = _load_list(contents['modules'],
+    config.nodes = load_list(contents['nodes'], _load_node)
+    config.modules = load_list(contents['modules'],
                                 lambda m: _load_module(m, config))
 
     if 'connections' in contents:
-        config.connections = _load_list(contents['connections'],
+        config.connections = load_list(contents['connections'],
                                         lambda c: _load_connection(c, config, deploy))
     else:
         config.connections = []
 
     if 'periodic-events' in contents:
-        config.periodic_events = _load_list(contents['periodic-events'],
+        config.periodic_events = load_list(contents['periodic-events'],
                                         lambda e: _load_periodic_event(e, config))
     else:
         config.periodic_events = []
@@ -139,100 +137,13 @@ def load(file_name, deploy=True):
     return config
 
 
-def _load_list(l, load_func=lambda e: e):
-    if l is None:
-        return []
-    else:
-        return [load_func(e) for e in l]
-
-
 def _load_node(node_dict):
-    return _node_load_funcs[node_dict['type']](node_dict)
-
-
-def _load_sancus_node(node_dict):
-    name = node_dict['name']
-    vendor_id = _parse_vendor_id(node_dict['vendor_id'])
-    vendor_key = _parse_sancus_key(node_dict['vendor_key'])
-    ip_address = ipaddress.ip_address(node_dict['ip_address'])
-    reactive_port = node_dict['reactive_port']
-    deploy_port = node_dict.get('deploy_port', reactive_port)
-
-    return SancusNode(name, vendor_id, vendor_key,
-                      ip_address, reactive_port, deploy_port)
-
-
-def _load_sgx_node(node_dict):
-    name = node_dict['name']
-    ip_address = ipaddress.ip_address(node_dict['ip_address'])
-    reactive_port = node_dict['reactive_port']
-    deploy_port = node_dict.get('deploy_port', reactive_port)
-
-    return SGXNode(name, ip_address, reactive_port, deploy_port)
-
-
-def _load_native_node(node_dict):
-    name = node_dict['name']
-    ip_address = ipaddress.ip_address(node_dict['ip_address'])
-    reactive_port = node_dict['reactive_port']
-    deploy_port = node_dict.get('deploy_port', reactive_port)
-
-    return NativeNode(name, ip_address, reactive_port, deploy_port)
+    return node_funcs[node_dict['type']](node_dict)
 
 
 def _load_module(mod_dict, config):
-    return _module_load_funcs[mod_dict['type']](mod_dict, config)
-
-
-def _load_sancus_module(mod_dict, config):
-    name = mod_dict['name']
     node = config.get_node(mod_dict['node'])
-    priority = mod_dict.get('priority')
-    deployed = mod_dict.get('deployed')
-    files = _load_list(mod_dict['files'],
-                       lambda f: _load_module_file(f, config))
-    cflags = _load_list(mod_dict.get('cflags'))
-    ldflags = _load_list(mod_dict.get('ldflags'))
-    binary = mod_dict.get('binary')
-    id = mod_dict.get('id')
-    symtab = mod_dict.get('symtab')
-    key = _parse_sancus_key(mod_dict.get('key'))
-    return SancusModule(name, node, priority, deployed, files, cflags, ldflags,
-                        binary, id, symtab, key)
-
-
-def _load_sgx_module(mod_dict, config):
-    name = mod_dict['name']
-    node = config.get_node(mod_dict['node'])
-    priority = mod_dict.get('priority')
-    deployed = mod_dict.get('deployed')
-    vendor_key = mod_dict['vendor_key']
-    settings = mod_dict['ra_settings']
-    features = mod_dict.get('features')
-    id = mod_dict.get('id')
-    binary = mod_dict.get('binary')
-    key = _parse_key(mod_dict.get('key'))
-    sgxs = mod_dict.get('sgxs')
-    signature = mod_dict.get('signature')
-    data = mod_dict.get('data')
-
-    return SGXModule(name, node, priority, deployed, vendor_key, settings,
-                    features, id, binary, key, sgxs, signature, data)
-
-
-def _load_native_module(mod_dict, config):
-    name = mod_dict['name']
-    node = config.get_node(mod_dict['node'])
-    priority = mod_dict.get('priority')
-    deployed = mod_dict.get('deployed')
-    features = mod_dict.get('features')
-    id = mod_dict.get('id')
-    binary = mod_dict.get('binary')
-    key = _parse_key(mod_dict.get('key'))
-    data = mod_dict.get('data')
-
-    return NativeModule(name, node, priority, deployed, features, id, binary, key,
-                                data)
+    return module_funcs[mod_dict['type']](mod_dict, node)
 
 
 def _load_connection(conn_dict, config, deploy):
@@ -246,7 +157,7 @@ def _load_connection(conn_dict, config, deploy):
     to_input = conn_dict.get('to_input')
     to_handler = conn_dict.get('to_handler')
     encryption = Encryption.from_str(conn_dict['encryption'])
-    key = _parse_key(conn_dict.get('key'))
+    key = parse_key(conn_dict.get('key'))
     nonce = conn_dict.get('nonce')
     id = conn_dict.get('id')
     name = conn_dict.get('name')
@@ -270,7 +181,7 @@ def _load_connection(conn_dict, config, deploy):
 def _load_periodic_event(events_dict, config):
     module = config.get_module(events_dict['module'])
     entry = events_dict['entry']
-    frequency = _parse_frequency(events_dict['frequency'])
+    frequency = parse_frequency(events_dict['frequency'])
 
     return PeriodicEvent(module, entry, frequency)
 
@@ -284,167 +195,38 @@ def _generate_key(module1, module2, encryption):
     return tools.generate_key(encryption.get_key_size())
 
 
-def _parse_vendor_id(id):
-    if not 1 <= id <= 2**16 - 1:
-        raise Error('Vendor ID out of range')
-
-    return id
-
-
-def _parse_sancus_key(key_str):
-    if key_str is None:
-        return None
-
-    key = binascii.unhexlify(key_str)
-
-    keysize = tools.get_sancus_key_size()
-
-    if len(key) != keysize:
-        raise Error('Keys should be {} bytes'.format(keysize))
-
-    return key
-
-
-def _parse_key(key_str):
-    if key_str is None:
-        return None
-
-    return binascii.unhexlify(key_str)
-
-
-def _parse_frequency(freq):
-    if not 1 <= freq <= 2**32 - 1:
-        raise Error('Frequency out of range')
-
-    return freq
-
-
-def _load_module_file(file_name, config):
-    path = Path(file_name)
-    return path if path.is_absolute() else config.get_dir() / path
-
-
-_node_load_funcs = {
-    'sancus': _load_sancus_node,
-    'sgx': _load_sgx_node,
-    'native': _load_native_node
-}
-
-
-_module_load_funcs = {
-    'sancus': _load_sancus_module,
-    'sgx': _load_sgx_module,
-    'native': _load_native_module
-}
-
-
-def dump(config, file_name):
+def dump_config(config, file_name):
     with open(file_name, 'w') as f:
-        json.dump(_dump(config), f, indent=4)
+        json.dump(dump(config), f, indent=4)
 
 
-@functools.singledispatch
-def _dump(obj):
-    assert False, 'No dumper for {}'.format(type(obj))
-
-
-@_dump.register(Config)
-def _(config):
-    return {
-        'nodes': _dump(config.nodes),
-        'modules': _dump(config.modules),
-        'connections': _dump(config.connections),
-        'periodic-events' : _dump(config.periodic_events)
-    }
-
-
-@_dump.register(list)
+@dump.register(list)
 def _(l):
-    return [_dump(e) for e in l]
+    return [dump(e) for e in l]
 
 
-@_dump.register(SancusNode)
+@dump.register(Config)
+def _(config):
+    dump(config.nodes)
+    return {
+            'nodes': dump(config.nodes),
+            'modules': dump(config.modules),
+            'connections': dump(config.connections),
+            'periodic-events' : dump(config.periodic_events)
+        }
+
+
+@dump.register(Node)
 def _(node):
-    return {
-        "type": "sancus",
-        "name": node.name,
-        "ip_address": str(node.ip_address),
-        "vendor_id": node.vendor_id,
-        "vendor_key": _dump(node.vendor_key),
-        "reactive_port": node.reactive_port,
-        "deploy_port": node.deploy_port
-    }
+    return node.dump()
 
 
-@_dump.register(SancusModule)
+@dump.register(Module)
 def _(module):
-    return {
-        "type": "sancus",
-        "name": module.name,
-        "files": _dump(module.files),
-        "node": module.node.name,
-        "binary": _dump(module.binary),
-        "symtab": _dump(module.symtab),
-        "id": _dump(module.id),
-        "key": _dump(module.key)
-    }
+    return module.dump()
 
 
-@_dump.register(SGXNode)
-def _(node):
-    return {
-        "type": "sgx",
-        "name": node.name,
-        "ip_address": str(node.ip_address),
-        "reactive_port": node.reactive_port,
-        "deploy_port": node.deploy_port
-    }
-
-
-@_dump.register(SGXModule)
-def _(module):
-    return {
-        "type": "sgx",
-        "name": module.name,
-        "node": module.node.name,
-        "vendor_key": module.vendor_key,
-        "ra_settings": module.ra_settings,
-        "features": module.features,
-        "id": module.id,
-        "binary": _dump(module.binary),
-        "sgxs": _dump(module.sgxs),
-        "signature": _dump(module.sig),
-        "key": _dump(module.key),
-        "data": _dump(module.data)
-    }
-
-
-@_dump.register(NativeNode)
-def _(node):
-    return {
-        "type": "native",
-        "name": node.name,
-        "ip_address": str(node.ip_address),
-        "reactive_port": node.reactive_port,
-        "deploy_port": node.deploy_port
-    }
-
-
-@_dump.register(NativeModule)
-def _(module):
-    return {
-        "type": "native",
-        "name": module.name,
-        "node": module.node.name,
-        "features": module.features,
-        "id": module.id,
-        "binary": _dump(module.binary),
-        "key": _dump(module.key),
-        "data": _dump(module.data)
-    }
-
-
-@_dump.register(Connection)
+@dump.register(Connection)
 def _(conn):
     from_module = None if conn.direct else conn.from_module.name
 
@@ -457,52 +239,20 @@ def _(conn):
         "to_input": conn.to_input,
         "to_handler": conn.to_handler,
         "encryption": conn.encryption.to_str(),
-        "key": _dump(conn.key),
+        "key": dump(conn.key),
         "id": conn.id,
         "direct": conn.direct,
         "nonce": conn.nonce
     }
 
 
-@_dump.register(PeriodicEvent)
+@dump.register(PeriodicEvent)
 def _(event):
     return {
         "module": event.module.name,
         "entry": event.entry,
         "frequency": event.frequency
     }
-
-
-@_dump.register(bytes)
-@_dump.register(bytearray)
-def _(bs):
-    return binascii.hexlify(bs).decode('ascii')
-
-
-@_dump.register(str)
-@_dump.register(int)
-def _(x):
-    return x
-
-
-@_dump.register(Path)
-def _(path):
-    return str(path)
-
-
-@_dump.register(tuple)
-def _(t):
-    return { t[1] : t[0] }
-
-
-@_dump.register(types.CoroutineType)
-def _(coro):
-    return _dump(asyncio.get_event_loop().run_until_complete(coro))
-
-
-@_dump.register(dict)
-def _(dict):
-    return dict
 
 
 # Rules

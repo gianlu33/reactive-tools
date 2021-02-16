@@ -8,6 +8,8 @@ from ..nodes import NativeNode
 from .. import tools
 from .. import glob
 from ..crypto import Encryption
+from ..dumpers import *
+from ..loaders import *
 
 class Object():
     pass
@@ -31,6 +33,33 @@ class NativeModule(Module):
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = "build/{}".format(name)
+
+    @staticmethod
+    def load(mod_dict, node_obj):
+        name = mod_dict['name']
+        node = node_obj
+        priority = mod_dict.get('priority')
+        deployed = mod_dict.get('deployed')
+        features = mod_dict.get('features')
+        id = mod_dict.get('id')
+        binary = mod_dict.get('binary')
+        key = parse_key(mod_dict.get('key'))
+        data = mod_dict.get('data')
+
+        return NativeModule(name, node, priority, deployed, features, id, binary, key,
+                                    data)
+
+    def dump(self):
+        return {
+            "type": "native",
+            "name": self.name,
+            "node": self.node.name,
+            "features": self.features,
+            "id": self.id,
+            "binary": dump(self.binary),
+            "key": dump(self.key),
+            "data": dump(self.data)
+        }
 
     # --- Properties --- #
 
