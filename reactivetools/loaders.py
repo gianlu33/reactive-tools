@@ -15,6 +15,9 @@ def load_list(l, load_func=lambda e: e):
 
 
 def parse_vendor_id(id):
+    if id is None:
+        return None
+
     if not 1 <= id <= 2**16 - 1:
         raise Error('Vendor ID out of range')
 
@@ -43,6 +46,9 @@ def parse_key(key_str):
 
 
 def parse_frequency(freq):
+    if freq is None:
+        return None
+
     if not 1 <= freq <= 2**32 - 1:
         raise Error('Frequency out of range')
 
@@ -50,4 +56,7 @@ def parse_frequency(freq):
 
 
 def parse_file_name(file_name):
+    if file_name is None:
+        return None
+
     return os.path.abspath(file_name)
