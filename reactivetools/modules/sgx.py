@@ -78,14 +78,14 @@ class SGXModule(Module):
         node = node_obj
         priority = mod_dict.get('priority')
         deployed = mod_dict.get('deployed')
-        vendor_key = mod_dict['vendor_key']
-        settings = mod_dict['ra_settings']
+        vendor_key = parse_file_name(mod_dict['vendor_key'])
+        settings = parse_file_name(mod_dict['ra_settings'])
         features = mod_dict.get('features')
         id = mod_dict.get('id')
-        binary = mod_dict.get('binary')
+        binary = parse_file_name(mod_dict.get('binary'))
         key = parse_key(mod_dict.get('key'))
-        sgxs = mod_dict.get('sgxs')
-        signature = mod_dict.get('signature')
+        sgxs = parse_file_name(mod_dict.get('sgxs'))
+        signature = parse_file_name(mod_dict.get('signature'))
         data = mod_dict.get('data')
 
         return SGXModule(name, node, priority, deployed, vendor_key, settings,
@@ -384,9 +384,7 @@ class SGXModule(Module):
         await self.deploy()
         await self._ra_sp_fut
 
-        settings_abs = os.path.abspath(self.ra_settings)
-
-        args = [str(self.node.ip_address), str(self.port), settings_abs, await self.sig]
+        args = [str(self.node.ip_address), str(self.port), self.ra_settings, await self.sig]
         key = await tools.run_async_output(glob.RA_CLIENT, *args)
 
         logging.info("Done Remote Attestation of {}".format(self.name))

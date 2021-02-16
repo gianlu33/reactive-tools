@@ -42,7 +42,7 @@ class NativeModule(Module):
         deployed = mod_dict.get('deployed')
         features = mod_dict.get('features')
         id = mod_dict.get('id')
-        binary = mod_dict.get('binary')
+        binary = parse_file_name(mod_dict.get('binary'))
         key = parse_key(mod_dict.get('key'))
         data = mod_dict.get('data')
 

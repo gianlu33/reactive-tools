@@ -43,9 +43,9 @@ class SancusModule(Module):
                            lambda f: parse_file_name(f))
         cflags = load_list(mod_dict.get('cflags'))
         ldflags = load_list(mod_dict.get('ldflags'))
-        binary = mod_dict.get('binary')
+        binary = parse_file_name(mod_dict.get('binary'))
         id = mod_dict.get('id')
-        symtab = mod_dict.get('symtab')
+        symtab = parse_file_name(mod_dict.get('symtab'))
         key = parse_sancus_key(mod_dict.get('key'))
         return SancusModule(name, node, priority, deployed, files, cflags, ldflags,
                             binary, id, symtab, key)
