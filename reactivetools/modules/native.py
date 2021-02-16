@@ -32,7 +32,7 @@ class NativeModule(Module):
         self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
-        self.output = "build/{}".format(name)
+        self.output = os.path.join(os.getcwd(), "build", name)
 
     @staticmethod
     def load(mod_dict, node_obj):
@@ -264,7 +264,8 @@ class NativeModule(Module):
         cmd = glob.BUILD_APP.format(features, self.output).split()
         await tools.run_async(*cmd)
 
-        binary = "{}/target/{}/{}".format(self.output, glob.BUILD_MODE, self.name)
+        binary = os.path.join(self.output,
+                        "target", glob.BUILD_MODE, self.name)
 
         logging.info("Built module {}".format(self.name))
         return binary

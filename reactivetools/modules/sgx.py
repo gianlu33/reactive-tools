@@ -22,8 +22,8 @@ class Error(Exception):
 async def _generate_sp_keys():
     dir = tools.create_tmp_dir()
 
-    priv = "{}/private_key.pem".format(dir)
-    pub = "{}/public_key.pem".format(dir)
+    priv = os.path.join(dir, "private_key.pem")
+    pub = os.path.join(dir, "public_key.pem")
 
     cmd = "ssh-keygen"
     args_private = "-t rsa -f {} -b 2048 -N ''".format(priv).split()
@@ -69,7 +69,7 @@ class SGXModule(Module):
         self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
-        self.output = "build/{}".format(name)
+        self.output = os.path.join(os.getcwd(), "build", name)
 
 
     @staticmethod
@@ -356,7 +356,7 @@ class SGXModule(Module):
         cmd = glob.BUILD_SGX_APP.format(features, self.output).split()
         await tools.run_async(*cmd)
 
-        binary = "{}/target/{}/{}/{}".format(self.output, glob.SGX_TARGET, glob.BUILD_MODE, self.name)
+        binary = os.path.join(self.output, "target", glob.SGX_TARGET, glob.BUILD_MODE, self.name)
 
         logging.info("Built module {}".format(self.name))
 
