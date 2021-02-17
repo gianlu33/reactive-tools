@@ -69,7 +69,7 @@ def _parse_args(args):
         help='Deploy a reactive network')
     deploy_parser.set_defaults(command_handler=_handle_deploy)
     deploy_parser.add_argument(
-        '--build-mode',
+        '--mode',
         help='build mode of modules. between "debug" and "release"',
         default='debug'
     )
@@ -94,7 +94,7 @@ def _parse_args(args):
         help='Build the executables of the SMs as declared in the input configuration file (for debugging)')
     build_parser.set_defaults(command_handler=_handle_build)
     build_parser.add_argument(
-        '--build-mode',
+        '--mode',
         help='build mode of modules. between "debug" and "release"',
         default='debug'
     )
@@ -266,7 +266,7 @@ def _handle_request(args):
 
 def main(raw_args=None):
     args = _parse_args(raw_args)
-    glob.set_build_mode(args.build_mode)
+    glob.set_build_mode(args.mode)
 
     _setup_logging(args)
     _setup_pdb(args)
