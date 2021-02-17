@@ -53,6 +53,11 @@ class Node(ABC):
 
 
     @staticmethod
+    def rules(dict):
+        return {}
+
+
+    @staticmethod
     async def cleanup():
         pass
 

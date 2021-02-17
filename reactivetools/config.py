@@ -13,9 +13,12 @@ from .periodic_event import PeriodicEvent
 from . import tools
 from .dumpers import *
 from .loaders import *
+from . import rules
+from .rules.evaluators import *
 
-from .nodes import node_funcs, node_cleanup_coros
-from .modules import module_funcs, module_cleanup_coros
+from .nodes import node_rules, node_funcs, node_cleanup_coros
+from .modules import module_rules, module_funcs, module_cleanup_coros
+
 
 class Error(Exception):
     pass
@@ -26,7 +29,6 @@ class Config:
         self.nodes = []
         self.modules = []
         self.connections = []
-
 
     def get_node(self, name):
         for n in self.nodes:
@@ -116,15 +118,17 @@ def load(file_name, deploy=True):
     with open(file_name, 'r') as f:
         contents = json.load(f)
 
+    set_deploy(deploy)
     config = Config()
 
-    config.nodes = load_list(contents['nodes'], _load_node)
+    config.nodes = load_list(contents['nodes'],
+                                lambda n: _load_node(n, config))
     config.modules = load_list(contents['modules'],
                                 lambda m: _load_module(m, config))
 
     if 'connections' in contents:
         config.connections = load_list(contents['connections'],
-                                        lambda c: _load_connection(c, config, deploy))
+                                        lambda c: _load_connection(c, config))
     else:
         config.connections = []
 
@@ -137,17 +141,27 @@ def load(file_name, deploy=True):
     return config
 
 
-def _load_node(node_dict):
+def _load_node(node_dict, config):
+    # Basic rules common to all nodes
+    evaluate_rules(rules.node_generic_rules(node_dict))
+    # Specific rules for a specific node type
+    evaluate_rules(node_rules[node_dict['type']](node_dict))
+
     return node_funcs[node_dict['type']](node_dict)
 
 
 def _load_module(mod_dict, config):
+    # Basic rules common to all modules
+    evaluate_rules(rules.module_generic_rules(mod_dict))
+    # Specific rules for a specific module type
+    evaluate_rules(module_rules[mod_dict['type']](mod_dict))
+
     node = config.get_node(mod_dict['node'])
     return module_funcs[mod_dict['type']](mod_dict, node)
 
 
-def _load_connection(conn_dict, config, deploy):
-    evaluate_rules(connection_rules(conn_dict, deploy))
+def _load_connection(conn_dict, config):
+    evaluate_rules(rules.connection_rules(conn_dict))
 
     direct = conn_dict.get('direct')
     from_module = config.get_module(conn_dict['from_module']) if is_present(conn_dict, 'from_module') else None
@@ -162,7 +176,7 @@ def _load_connection(conn_dict, config, deploy):
     id = conn_dict.get('id')
     name = conn_dict.get('name')
 
-    if deploy:
+    if is_deploy():
         id = Connection.get_connection_id() # incremental ID
         key = _generate_key(from_module, to_module, encryption) # auto-generated key
         nonce = 0 # only used for direct connections
@@ -179,6 +193,8 @@ def _load_connection(conn_dict, config, deploy):
 
 
 def _load_periodic_event(events_dict, config):
+    evaluate_rules(rules.periodic_event_rules(events_dict))
+
     module = config.get_module(events_dict['module'])
     entry = events_dict['entry']
     frequency = parse_positive_number(events_dict['frequency'], bits=32)
@@ -193,6 +209,16 @@ def _generate_key(module1, module2, encryption):
             str(encryption), module1.name, module2.name))
 
     return tools.generate_key(encryption.get_key_size())
+
+
+def evaluate_rules(rules):
+    bad_rules = [r for r in rules if not rules[r]]
+
+    for rule in bad_rules:
+        logging.error("Broken rule: {}".format(rule))
+
+    if bad_rules:
+        raise Error("Bad JSON configuration")
 
 
 def dump_config(config, file_name):
@@ -252,71 +278,4 @@ def _(event):
         "module": event.module.name,
         "entry": event.entry,
         "frequency": event.frequency
-    }
-
-
-# Rules
-def evaluate_rules(rules):
-    bad_rules = [r for r in rules if not rules[r]]
-
-    for rule in bad_rules:
-        logging.error("Broken rule: {}".format(rule))
-
-    if bad_rules:
-        raise Error("Bad JSON configuration")
-
-
-def is_present(dict, key):
-    return key in dict and dict[key] is not None
-
-def has_value(dict, key, value):
-    return is_present(dict, key) and dict[key] == value
-
-def authorized_keys(dict, keys):
-    for key in dict:
-        if key not in keys:
-            return False
-
-    return True
-
-def connection_rules(dict, deploy):
-    return {
-        "to_module not present":
-            is_present(dict, "to_module"),
-        "encryption not present":
-            is_present(dict, "encryption"),
-
-        "either direct=True or from_module + from_{output, request}":
-            has_value(dict, "direct", True) != (is_present(dict, "from_module") \
-            and (is_present(dict, "from_output") != is_present(dict, "from_request"))),
-
-        "either one between to_input and to_handler":
-            is_present(dict, "to_input") != is_present(dict, "to_handler"),
-
-        "direct or from_output->to_input or from_request->to_handler":
-            has_value(dict, "direct", True) or (is_present(dict, "from_output") and is_present(dict, "to_input")) \
-            or (is_present(dict, "from_request") and is_present(dict, "to_handler")),
-
-        "key present ONLY after deployment":
-            (deploy and not is_present(dict, "key")) or (not deploy and is_present(dict, "key")),
-
-        "nonce present ONLY after deployment":
-            (deploy and not is_present(dict, "nonce")) or (not deploy and is_present(dict, "nonce")),
-
-        "id present ONLY after deployment":
-            (deploy and not is_present(dict, "id")) or (not deploy and is_present(dict, "id")),
-
-        "name mandatory after deployment":
-            deploy or (not deploy and is_present(dict, "name")),
-
-        "direct mandatory after deployment":
-            deploy or (not deploy and is_present(dict, "direct")),
-
-        "from_module and to_module must be different":
-            dict.get("from_module") != dict["to_module"],
-
-        "only authorized keys":
-            authorized_keys(dict, ["name", "from_module", "from_output",
-                "from_request", "to_module", "to_input", "to_handler",
-                "encryption", "key", "id", "direct", "nonce"])
     }
