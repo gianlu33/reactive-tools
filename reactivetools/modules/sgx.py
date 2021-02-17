@@ -67,8 +67,6 @@ class SGXModule(Module):
                     signature=None, data=None):
         super().__init__(name, node, priority, deployed)
 
-        self.__check_init_args(node, id, binary, key, sgxs, signature, data)
-
         self.__deploy_fut = tools.init_future(id) # not completely true
         self.__generate_fut = tools.init_future(data)
         self.__build_fut = tools.init_future(binary)
@@ -276,8 +274,8 @@ class SGXModule(Module):
 
 
     @staticmethod
-    def get_supported_node_type():
-        return SGXNode
+    def get_supported_nodes():
+        return [SGXNode]
 
 
     @staticmethod
@@ -312,21 +310,6 @@ class SGXModule(Module):
 
 
     # --- Others --- #
-
-    def __check_init_args(self, node, id, binary, key, sgxs, signature, data):
-        if not isinstance(node, self.get_supported_node_type()):
-            clsname = lambda o: type(o).__name__
-            raise Error('A {} cannot run on a {}'
-                    .format(clsname(self), clsname(node)))
-
-        # For now, either all optionals should be given or none. This might be
-        # relaxed later if necessary.
-        optionals = (id, binary, key, sgxs, signature, data)
-
-        if None in optionals and any(map(lambda x: x is not None, optionals)):
-            raise Error('Either all of the optional node parameters '
-                        'should be given or none')
-
 
     async def generate_code(self):
         if self.__generate_fut is None:

@@ -5,7 +5,7 @@ from .sgx import SGXNode
 
 node_rules = {
     "sancus"    : "sancus.yaml",
-    "sgx"       : "sgx.yaml.",
+    "sgx"       : "sgx.yaml",
     "native"    : "native.yaml"
 }
 

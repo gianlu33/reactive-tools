@@ -156,7 +156,14 @@ def _load_module(mod_dict, config):
     evaluate_rules(os.path.join("modules", module_rules[mod_dict['type']]), mod_dict)
 
     node = config.get_node(mod_dict['node'])
-    return module_funcs[mod_dict['type']](mod_dict, node)
+    module = module_funcs[mod_dict['type']](mod_dict, node)
+
+    if node.__class__ not in module.get_supported_nodes():
+        raise Error("Node {} ({}) does not support module {} ({})".format(
+            node.name, node.__class__.__name__,
+            module.name, module.__class__.__name__))
+
+    return module
 
 
 def _load_connection(conn_dict, config):

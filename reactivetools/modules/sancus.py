@@ -22,8 +22,6 @@ class SancusModule(Module):
                  binary=None, id=None, symtab=None, key=None):
         super().__init__(name, node, priority, deployed)
 
-        self.__check_init_args(node, binary, id, symtab, key)
-
         self.files = files
         self.cflags = cflags
         self.ldflags = ldflags
@@ -141,8 +139,8 @@ class SancusModule(Module):
 
 
     @staticmethod
-    def get_supported_node_type():
-        return SancusNode
+    def get_supported_nodes():
+        return [SancusNode]
 
 
     @staticmethod
@@ -176,21 +174,6 @@ class SancusModule(Module):
             return io
 
         return await self._get_io_id(io)
-
-
-    def __check_init_args(self, node, binary, id, symtab, key):
-        if not isinstance(node, self.get_supported_node_type()):
-            clsname = lambda o: type(o).__name__
-            raise Error('A {} cannot run on a {}'
-                    .format(clsname(self), clsname(node)))
-
-        # For now, either all optionals should be given or none. This might be
-        # relaxed later if necessary.
-        optionals = (binary, id, symtab, key)
-
-        if None in optionals and any(map(lambda x: x is not None, optionals)):
-            raise Error('Either all of the optional node parameters '
-                        'should be given or none')
 
 
     async def __build(self):

@@ -5,7 +5,7 @@ from .sgx import SGXModule
 
 module_rules = {
     "sancus"    : "sancus.yaml",
-    "sgx"       : "sgx.yaml.",
+    "sgx"       : "sgx.yaml",
     "native"    : "native.yaml"
 }
 

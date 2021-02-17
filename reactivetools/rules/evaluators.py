@@ -49,6 +49,7 @@ def load_rules(file):
             data = yaml.load(f, Loader=yaml.FullLoader)
 
         return data if data is not None else {}
-    except:
+    except Exception as e:
         logging.warning("Something went wrong during load of {}".format(file))
+        logging.debug(e)
         return {}

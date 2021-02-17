@@ -59,7 +59,7 @@ class Module(ABC):
         pass
 
     @abstractmethod
-    def get_supported_node_type():
+    def get_supported_nodes():
         pass
 
     @abstractmethod
