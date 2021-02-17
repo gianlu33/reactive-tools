@@ -11,6 +11,8 @@ from ..crypto import Encryption
 from ..dumpers import *
 from ..loaders import *
 
+BUILD_APP = "cargo build {} {} --manifest-path={}/Cargo.toml"
+
 class Object():
     pass
 
@@ -257,15 +259,14 @@ class NativeModule(Module):
     async def __build(self):
         await self.generate_code()
 
-        features = ""
-        if self.features:
-            features = "--features " + " ".join(self.features)
+        release = "--release" if glob.get_build_mode() == glob.BuildMode.RELEASE else ""
+        features = "--features " + " ".join(self.features) if self.features else ""
 
-        cmd = glob.BUILD_APP.format(features, self.output).split()
+        cmd = BUILD_APP.format(release, features, self.output).split()
         await tools.run_async(*cmd)
 
         binary = os.path.join(self.output,
-                        "target", glob.BUILD_MODE, self.name)
+                        "target", glob.get_build_mode().to_str(), self.name)
 
         logging.info("Built module {}".format(self.name))
         return binary

@@ -12,6 +12,17 @@ from ..crypto import Encryption
 from ..dumpers import *
 from ..loaders import *
 
+# Apps
+RA_SP = "ra_sp"
+RA_CLIENT = "ra_client"
+
+# SGX build/sign
+SGX_TARGET = "x86_64-fortanix-unknown-sgx"
+BUILD_APP = "cargo build {{}} {{}} --target={} --manifest-path={{}}/Cargo.toml".format( SGX_TARGET)
+CONVERT_SGX = "ftxsgx-elf2sgxs {} --heap-size 0x20000 --stack-size 0x20000 --threads 4 {}"
+SIGN_SGX = "sgxs-sign --key {} {} {} {} --xfrm 7/0 --isvprodid 0 --isvsvn 0"
+
+
 class Object():
     pass
 
@@ -38,13 +49,13 @@ async def _generate_sp_keys():
 async def _run_ra_sp():
     # kill old ra_sp (if running)
     try:
-        await tools.run_async("pkill", "-f", glob.RA_SP)
+        await tools.run_async("pkill", "-f", RA_SP)
     except:
         pass
 
     arg = await SGXModule._get_ra_sp_priv_key()
 
-    return await tools.run_async_background(glob.RA_SP, arg)
+    return await tools.run_async_background(RA_SP, arg)
 
 
 class SGXModule(Module):
@@ -349,14 +360,14 @@ class SGXModule(Module):
     async def __build(self):
         await self.generate_code()
 
-        features = ""
-        if self.features:
-            features = "--features " + " ".join(self.features)
+        release = "--release" if glob.get_build_mode() == glob.BuildMode.RELEASE else ""
+        features = "--features " + " ".join(self.features) if self.features else ""
 
-        cmd = glob.BUILD_SGX_APP.format(features, self.output).split()
+        cmd = BUILD_APP.format(release, features, self.output).split()
         await tools.run_async(*cmd)
 
-        binary = os.path.join(self.output, "target", glob.SGX_TARGET, glob.BUILD_MODE, self.name)
+        binary = os.path.join(self.output, "target", SGX_TARGET,
+                        glob.get_build_mode().to_str(), self.name)
 
         logging.info("Built module {}".format(self.name))
 
@@ -365,12 +376,13 @@ class SGXModule(Module):
 
     async def __convert_sign(self):
         binary = await self.binary
+        debug = "--debug" if glob.get_build_mode() == glob.BuildMode.DEBUG else ""
 
         sgxs = "{}.sgxs".format(binary)
         sig = "{}.sig".format(binary)
 
-        cmd_convert = glob.CONVERT_SGX.format(binary).split()
-        cmd_sign = glob.SIGN_SGX.format(self.vendor_key, sgxs, sig).split()
+        cmd_convert = CONVERT_SGX.format(binary, debug).split()
+        cmd_sign = SIGN_SGX.format(self.vendor_key, sgxs, sig, debug).split()
 
         await tools.run_async(*cmd_convert)
         await tools.run_async(*cmd_sign)
@@ -385,7 +397,7 @@ class SGXModule(Module):
         await self._ra_sp_fut
 
         args = [str(self.node.ip_address), str(self.port), self.ra_settings, await self.sig]
-        key = await tools.run_async_output(glob.RA_CLIENT, *args)
+        key = await tools.run_async_output(RA_CLIENT, *args)
 
         logging.info("Done Remote Attestation of {}".format(self.name))
 
