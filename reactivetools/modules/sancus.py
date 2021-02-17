@@ -206,7 +206,7 @@ class SancusModule(Module):
         try:
             import sancus.crypto
         except:
-            raise Error("Cannot import sancus.crypto! Maybe the Sancus toolchain is not installed, or python modules are not in PYTHONPATH")
+            raise Error("Sancus python libraries not found in PYTHONPATH")
 
         linked_binary = await self.__link()
 
