@@ -176,6 +176,8 @@ def _parse_args(args):
 def _handle_deploy(args):
     logging.info('Deploying %s', args.config)
 
+    glob.set_build_mode(args.mode)
+
     os.chdir(args.workspace)
     conf = config.load(args.config)
 
@@ -194,8 +196,11 @@ def _handle_deploy(args):
 def _handle_build(args):
     logging.info('Building %s', args.config)
 
+    glob.set_build_mode(args.mode)
+
     os.chdir(args.workspace)
     conf = config.load(args.config)
+
     conf.build()
     conf.cleanup()
 
@@ -266,8 +271,6 @@ def _handle_request(args):
 
 def main(raw_args=None):
     args = _parse_args(raw_args)
-    glob.set_build_mode(args.mode)
-
     _setup_logging(args)
     _setup_pdb(args)
 
