@@ -142,25 +142,25 @@ def load(file_name, deploy=True):
 
 def _load_node(node_dict, config):
     # Basic rules common to all nodes
-    evaluate_rules(load_rules("default", "node.yaml"), node_dict)
+    evaluate_rules(os.path.join("default", "node.yaml"), node_dict)
     # Specific rules for a specific node type
-    evaluate_rules(load_rules("nodes", node_rules[node_dict['type']]), node_dict)
+    evaluate_rules(os.path.join("nodes", node_rules[node_dict['type']]), node_dict)
 
     return node_funcs[node_dict['type']](node_dict)
 
 
 def _load_module(mod_dict, config):
     # Basic rules common to all nodes
-    evaluate_rules(load_rules("default", "module.yaml"), mod_dict)
+    evaluate_rules(os.path.join("default", "module.yaml"), mod_dict)
     # Specific rules for a specific node type
-    evaluate_rules(load_rules("modules", module_rules[mod_dict['type']]), mod_dict)
+    evaluate_rules(os.path.join("modules", module_rules[mod_dict['type']]), mod_dict)
 
     node = config.get_node(mod_dict['node'])
     return module_funcs[mod_dict['type']](mod_dict, node)
 
 
 def _load_connection(conn_dict, config):
-    evaluate_rules(load_rules("default", "connection.yaml"), conn_dict)
+    evaluate_rules(os.path.join("default", "connection.yaml"), conn_dict)
 
     direct = conn_dict.get('direct')
     from_module = config.get_module(conn_dict['from_module']) if is_present(conn_dict, 'from_module') else None
@@ -192,11 +192,11 @@ def _load_connection(conn_dict, config):
 
 
 def _load_periodic_event(events_dict, config):
-    evaluate_rules(load_rules("default", "periodic_event.yaml"), conn_dict)
+    evaluate_rules(os.path.join("default", "periodic_event.yaml"), events_dict)
 
     module = config.get_module(events_dict['module'])
     entry = events_dict['entry']
-    frequency = parse_positive_number(events_dict['frequency'], bits=32)
+    frequency = events_dict['frequency']
 
     return PeriodicEvent(module, entry, frequency)
 
@@ -210,12 +210,19 @@ def _generate_key(module1, module2, encryption):
     return tools.generate_key(encryption.get_key_size())
 
 
-def evaluate_rules(rules, dict):
+def evaluate_rules(rules_file, dict):
+    rules = load_rules(rules_file)
+
     ok = True
 
     for r in rules:
-        if not eval(rules[r]):
-            logging.error("Broken rule: {}".format(r))
+        try:
+            result = eval(rules[r])
+        except:
+            result = False
+
+        if not result:
+            logging.error("{} - Broken rule: {}".format(rules_file, r))
             ok = False
 
     if not ok:

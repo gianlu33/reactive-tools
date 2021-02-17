@@ -1,9 +1,9 @@
 # Connection rules
 
-to_module not present:
+to_module required:
   is_present(dict, "to_module")
 
-encryption not present:
+encryption required:
   is_present(dict, "encryption")
 
 either direct=True or from_module + from_{output, request}:

@@ -1,1 +1,22 @@
 # Generic Module rules
+
+## required keys ##
+type required:
+  is_present(dict, "type")
+
+name required:
+  is_present(dict, "type")
+
+node required:
+  is_present(dict, "node")
+
+
+## type of the required values ##
+type must be a str:
+  isinstance(dict["type"], str)
+
+name must be a str:
+  isinstance(dict["name"], str)
+
+node must be a str:
+  isinstance(dict["node"], str)
