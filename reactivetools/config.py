@@ -181,7 +181,7 @@ def _load_connection(conn_dict, config, deploy):
 def _load_periodic_event(events_dict, config):
     module = config.get_module(events_dict['module'])
     entry = events_dict['entry']
-    frequency = parse_frequency(events_dict['frequency'])
+    frequency = parse_positive_number(events_dict['frequency'], bits=32)
 
     return PeriodicEvent(module, entry, frequency)
 

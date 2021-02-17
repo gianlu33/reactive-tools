@@ -14,30 +14,6 @@ def load_list(l, load_func=lambda e: e):
         return [load_func(e) for e in l]
 
 
-def parse_vendor_id(id):
-    if id is None:
-        return None
-
-    if not 1 <= id <= 2**16 - 1:
-        raise Error('Vendor ID out of range')
-
-    return id
-
-
-def parse_sancus_key(key_str):
-    if key_str is None:
-        return None
-
-    key = binascii.unhexlify(key_str)
-
-    keysize = tools.get_sancus_key_size()
-
-    if len(key) != keysize:
-        raise Error('Keys should be {} bytes'.format(keysize))
-
-    return key
-
-
 def parse_key(key_str):
     if key_str is None:
         return None
@@ -45,14 +21,17 @@ def parse_key(key_str):
     return binascii.unhexlify(key_str)
 
 
-def parse_frequency(freq):
-    if freq is None:
+def parse_positive_number(val, bits=16):
+    if val is None:
         return None
 
-    if not 1 <= freq <= 2**32 - 1:
-        raise Error('Frequency out of range')
+    if not isinstance(val, int):
+        raise Error("value {} is not an integer".format(val))
 
-    return freq
+    if not 1 <= val <= 2**bits - 1:
+        raise Error("value {} is not a positive {}-bit number".format(val, bits))
+
+    return val
 
 
 def parse_file_name(file_name):

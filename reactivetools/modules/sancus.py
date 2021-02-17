@@ -46,7 +46,7 @@ class SancusModule(Module):
         binary = parse_file_name(mod_dict.get('binary'))
         id = mod_dict.get('id')
         symtab = parse_file_name(mod_dict.get('symtab'))
-        key = parse_sancus_key(mod_dict.get('key'))
+        key = parse_key(mod_dict.get('key'))
         return SancusModule(name, node, priority, deployed, files, cflags, ldflags,
                             binary, id, symtab, key)
 

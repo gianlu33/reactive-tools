@@ -67,7 +67,8 @@ class Module(ABC):
         pass
 
 
-    # Default implementation. Change if needed
+    # Default implementation functions. Override in the subclasses if needed
+
     @staticmethod
     async def cleanup():
         pass

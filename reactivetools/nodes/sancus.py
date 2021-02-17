@@ -35,8 +35,8 @@ class SancusNode(Node):
     @staticmethod
     def load(node_dict):
         name = node_dict['name']
-        vendor_id = parse_vendor_id(node_dict['vendor_id'])
-        vendor_key = parse_sancus_key(node_dict['vendor_key'])
+        vendor_id = parse_positive_number(node_dict['vendor_id'])
+        vendor_key = parse_key(node_dict['vendor_key'])
         ip_address = ipaddress.ip_address(node_dict['ip_address'])
         reactive_port = node_dict['reactive_port']
         deploy_port = node_dict.get('deploy_port', reactive_port)

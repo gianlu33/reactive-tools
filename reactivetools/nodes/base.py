@@ -49,8 +49,8 @@ class Node(ABC):
         pass
 
 
-    # Default implementation of the following functions. If a specific architecture
-    # needs a different implementation, do it in the subclass (e.g., SancusNode)
+    # Default implementation functions. Override in the subclasses if needed
+
 
     @staticmethod
     async def cleanup():
