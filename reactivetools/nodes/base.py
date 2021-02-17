@@ -51,12 +51,6 @@ class Node(ABC):
 
     # Default implementation functions. Override in the subclasses if needed
 
-
-    @staticmethod
-    def rules(dict):
-        return {}
-
-
     @staticmethod
     async def cleanup():
         pass

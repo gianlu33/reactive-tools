@@ -4,9 +4,9 @@ from .native import NativeModule
 from .sgx import SGXModule
 
 module_rules = {
-    "sancus"    : SancusModule.rules,
-    "sgx"       : SGXModule.rules,
-    "native"    : NativeModule.rules
+    "sancus"    : "sancus.yaml",
+    "sgx"       : "sgx.yaml.",
+    "native"    : "native.yaml"
 }
 
 module_funcs = {

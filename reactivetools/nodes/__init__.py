@@ -4,9 +4,9 @@ from .native import NativeNode
 from .sgx import SGXNode
 
 node_rules = {
-    "sancus"    : SancusNode.rules,
-    "sgx"       : SGXNode.rules,
-    "native"    : NativeNode.rules
+    "sancus"    : "sancus.yaml",
+    "sgx"       : "sgx.yaml.",
+    "native"    : "native.yaml"
 }
 
 node_funcs = {

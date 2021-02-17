@@ -13,7 +13,6 @@ from .periodic_event import PeriodicEvent
 from . import tools
 from .dumpers import *
 from .loaders import *
-from . import rules
 from .rules.evaluators import *
 
 from .nodes import node_rules, node_funcs, node_cleanup_coros
@@ -143,25 +142,25 @@ def load(file_name, deploy=True):
 
 def _load_node(node_dict, config):
     # Basic rules common to all nodes
-    evaluate_rules(rules.node_generic_rules(node_dict))
+    evaluate_rules(load_rules("default", "node.yaml"), node_dict)
     # Specific rules for a specific node type
-    evaluate_rules(node_rules[node_dict['type']](node_dict))
+    evaluate_rules(load_rules("nodes", node_rules[node_dict['type']]), node_dict)
 
     return node_funcs[node_dict['type']](node_dict)
 
 
 def _load_module(mod_dict, config):
-    # Basic rules common to all modules
-    evaluate_rules(rules.module_generic_rules(mod_dict))
-    # Specific rules for a specific module type
-    evaluate_rules(module_rules[mod_dict['type']](mod_dict))
+    # Basic rules common to all nodes
+    evaluate_rules(load_rules("default", "module.yaml"), mod_dict)
+    # Specific rules for a specific node type
+    evaluate_rules(load_rules("modules", module_rules[mod_dict['type']]), mod_dict)
 
     node = config.get_node(mod_dict['node'])
     return module_funcs[mod_dict['type']](mod_dict, node)
 
 
 def _load_connection(conn_dict, config):
-    evaluate_rules(rules.connection_rules(conn_dict))
+    evaluate_rules(load_rules("default", "connection.yaml"), conn_dict)
 
     direct = conn_dict.get('direct')
     from_module = config.get_module(conn_dict['from_module']) if is_present(conn_dict, 'from_module') else None
@@ -193,7 +192,7 @@ def _load_connection(conn_dict, config):
 
 
 def _load_periodic_event(events_dict, config):
-    evaluate_rules(rules.periodic_event_rules(events_dict))
+    evaluate_rules(load_rules("default", "periodic_event.yaml"), conn_dict)
 
     module = config.get_module(events_dict['module'])
     entry = events_dict['entry']
@@ -211,13 +210,15 @@ def _generate_key(module1, module2, encryption):
     return tools.generate_key(encryption.get_key_size())
 
 
-def evaluate_rules(rules):
-    bad_rules = [r for r in rules if not rules[r]]
+def evaluate_rules(rules, dict):
+    ok = True
 
-    for rule in bad_rules:
-        logging.error("Broken rule: {}".format(rule))
+    for r in rules:
+        if not eval(rules[r]):
+            logging.error("Broken rule: {}".format(r))
+            ok = False
 
-    if bad_rules:
+    if not ok:
         raise Error("Bad JSON configuration")
 
 
