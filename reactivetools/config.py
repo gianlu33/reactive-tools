@@ -1,4 +1,3 @@
-import json
 import binascii
 import ipaddress
 import os
@@ -14,6 +13,7 @@ from . import tools
 from .dumpers import *
 from .loaders import *
 from .rules.evaluators import *
+from .descriptor import DescriptorType
 
 from .nodes import node_rules, node_funcs, node_cleanup_coros
 from .modules import module_rules, module_funcs, module_cleanup_coros
@@ -29,6 +29,7 @@ class Config:
         self.modules = []
         self.connections = []
         self.connections_id = 0
+        self.output_type = None
 
     def get_node(self, name):
         for n in self.nodes:
@@ -114,11 +115,16 @@ class Config:
             await module.deploy()
 
 
-def load(file_name):
-    with open(file_name, 'r') as f:
-        contents = json.load(f)
-
+def load(file_name, output_type=None):
     config = Config()
+    desc_type = DescriptorType.from_str(output_type)
+
+    contents, input_type = DescriptorType.load_any(file_name)
+
+    # Output file format is:
+    #   - desc_type if has been provided as input, or
+    #   - the same type of the input file otherwise
+    config.output_type = desc_type or input_type
 
     config.nodes = load_list(contents['nodes'],
                                 lambda n: _load_node(n, config))
@@ -194,12 +200,11 @@ def evaluate_rules(rules_file, dict):
             ok = False
 
     if not ok:
-        raise Error("Bad JSON configuration")
+        raise Error("Bad deployment descriptor")
 
 
 def dump_config(config, file_name):
-    with open(file_name, 'w') as f:
-        json.dump(dump(config), f, indent=4)
+    config.output_type.dump(file_name, dump(config))
 
 
 @dump.register(Config)

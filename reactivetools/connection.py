@@ -84,7 +84,6 @@ class Connection:
         key = parse_key(conn_dict.get('key'))
         nonce = conn_dict.get('nonce')
         id = conn_dict.get('id')
-        name = conn_dict.get('name')
         established = conn_dict.get('established')
 
         if not established:
@@ -93,12 +92,11 @@ class Connection:
             key = Connection.generate_key(from_module, to_module, encryption) # auto-generated key
             nonce = 0 # only used for direct connections
 
+        name = conn_dict.get('name') or "conn{}".format(id)
+
         if from_module is not None:
             from_module.connections += 1
         to_module.connections += 1
-
-        if name is None:
-            name = "conn{}".format(id)
 
         return Connection(name, from_module, from_output, from_request, to_module,
             to_input, to_handler, encryption, key, id, nonce, direct, established)

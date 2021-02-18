@@ -2,6 +2,8 @@ import yaml
 import os
 import logging
 
+from ..descriptor import DescriptorType
+
 def is_present(dict, key):
     return key in dict and dict[key] is not None
 
@@ -34,9 +36,7 @@ def authorized_keys(dict, keys):
 def load_rules(file):
     try:
         path = os.path.join(os.path.dirname(__file__), file)
-        with open(path) as f:
-            data = yaml.load(f, Loader=yaml.FullLoader)
-
+        data = DescriptorType.YAML.load(path)
         return data if data is not None else {}
     except Exception as e:
         logging.warning("Something went wrong during load of {}".format(file))

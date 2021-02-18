@@ -65,6 +65,10 @@ def _parse_args(args):
         '--deploy-in-order',
         help='Deploy modules in the order they are found in the config file',
         action='store_true')
+    deploy_parser.add_argument(
+        '--output',
+        help='Output file type, between JSON and YAML',
+        default=None)
 
     # build
     build_parser = subparsers.add_parser(
@@ -157,7 +161,7 @@ def _handle_deploy(args):
     glob.set_build_mode(args.mode)
 
     os.chdir(args.workspace)
-    conf = config.load(args.config)
+    conf = config.load(args.config, args.output)
 
     if args.deploy_in_order:
         conf.deploy_modules_ordered()
