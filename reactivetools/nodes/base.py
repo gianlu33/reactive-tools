@@ -82,6 +82,10 @@ class Node(ABC):
     How this is done depends on the architecture, in general the binary of the
     module must be sent to the Event Manager with a special event on the deploy_port
 
+    *NOTE*: this coroutine should check if module has already been deployed
+            (doing nothing if this is the case), and set module.deployed to True
+            after deployment
+
     ### Parameters ###
     self: Node object
     module (XXXModule): module object to deploy
@@ -102,6 +106,9 @@ class Node(ABC):
 
     conn_io indicates which input/output/request/handler is involved in the connection
     encryption indicates which crypto library is used in this connection
+
+    *NOTE*: this coroutine should use module.nonce as part of associated data
+            and increment it if everything went well
 
     ### Parameters ###
     self: Node object

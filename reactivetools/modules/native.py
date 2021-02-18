@@ -21,9 +21,9 @@ class Error(Exception):
 
 
 class NativeModule(Module):
-    def __init__(self, name, node, priority, deployed, features, id=None, binary=None,
-                    key=None, data=None):
-        super().__init__(name, node, priority, deployed)
+    def __init__(self, name, node, priority, deployed, nonce, features,
+                id, binary, key, data):
+        super().__init__(name, node, priority, deployed, nonce)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
         self.__generate_fut = tools.init_future(data, key)
@@ -40,20 +40,24 @@ class NativeModule(Module):
         node = node_obj
         priority = mod_dict.get('priority')
         deployed = mod_dict.get('deployed')
+        nonce = mod_dict.get('nonce')
         features = mod_dict.get('features')
         id = mod_dict.get('id')
         binary = parse_file_name(mod_dict.get('binary'))
         key = parse_key(mod_dict.get('key'))
         data = mod_dict.get('data')
 
-        return NativeModule(name, node, priority, deployed, features, id, binary, key,
-                                    data)
+        return NativeModule(name, node, priority, deployed, nonce, features,
+                id, binary, key, data)
 
     def dump(self):
         return {
             "type": "native",
             "name": self.name,
             "node": self.node.name,
+            "priority": self.priority,
+            "deployed": self.deployed,
+            "nonce": self.nonce,
             "features": self.features,
             "id": self.id,
             "binary": dump(self.binary),

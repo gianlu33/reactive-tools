@@ -4,22 +4,24 @@ class Error(Exception):
     pass
 
 class Module(ABC):
-    def __init__(self, name, node, priority, deployed, nonce=0):
+    def __init__(self, name, node, priority, deployed, nonce):
         """
         Generic attributes common to all Module subclasses
+
+        Priority, deployed and nonce are used internally by the application
 
         ### Attributes ###
         name (str): name of the module
         node (XXXNode): *instance* of the Node class where the module belongs
         priority (int): priority of the module. For ordered deployment (can be None)
         deployed (bool): that indicates if the module has been deployed (can be None)
-        nonce (int): nonce used in set_key to ensure freshness (used internally)
+        nonce (int): nonce used in set_key to ensure freshness (can be None)
         """
         self.name = name
         self.node = node
         self.priority = priority
         self.deployed = deployed
-        self.nonce = nonce
+        self.nonce = 0 if nonce is None else nonce
 
         self.connections = 0
 

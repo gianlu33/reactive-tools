@@ -2,8 +2,6 @@ import yaml
 import os
 import logging
 
-__deploy = None
-
 def is_present(dict, key):
     return key in dict and dict[key] is not None
 
@@ -28,15 +26,6 @@ def authorized_keys(dict, keys):
             return False
 
     return True
-
-
-def set_deploy(deploy):
-    global __deploy
-    __deploy = deploy
-
-
-def is_deploy():
-    return __deploy
 
 
 # file: relative path of the file from the "rules" directory

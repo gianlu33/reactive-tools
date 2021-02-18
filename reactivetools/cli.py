@@ -1,7 +1,6 @@
 import argparse
 import logging
 import asyncio
-import pdb
 import sys
 import binascii
 import os
@@ -23,28 +22,7 @@ def _setup_logging(args):
     else:
         level = logging.WARNING
 
-    err_handler = logging.StreamHandler(sys.stderr)
-    err_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-    err_handler.setLevel(logging.WARNING)
-    logging.root.addHandler(err_handler)
-
-    class InfoFilter(logging.Filter):
-        def filter(self, record):
-            return record.levelno < logging.WARNING
-
-    info_handler = logging.StreamHandler(sys.stdout)
-    info_handler.setFormatter(logging.Formatter('%(message)s'))
-    info_handler.setLevel(logging.INFO)
-    info_handler.addFilter(InfoFilter())
-    logging.root.addHandler(info_handler)
-
-    logging.root.setLevel(level)
-
-
-def _setup_pdb(args):
-    if args.debug:
-        sys.excepthook = \
-                lambda type, value, traceback: pdb.post_mortem(traceback)
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=level)
 
 
 def _parse_args(args):
@@ -56,7 +34,7 @@ def _parse_args(args):
         action='store_true')
     parser.add_argument(
         '--debug',
-        help='Debug output and open PDB on uncaught exceptions',
+        help='Debug output',
         action='store_true')
 
     subparsers = parser.add_subparsers(dest='command')
@@ -208,7 +186,7 @@ def _handle_build(args):
 def _handle_call(args):
     logging.info('Calling %s:%s', args.module, args.entry)
 
-    conf = config.load(args.config, False)
+    conf = config.load(args.config)
     module = conf.get_module(args.module)
 
     asyncio.get_event_loop().run_until_complete(
@@ -220,7 +198,7 @@ def _handle_call(args):
 def _handle_output(args):
     logging.info('Triggering output of connection %s', args.connection)
 
-    conf = config.load(args.config, False)
+    conf = config.load(args.config)
 
     if args.connection.isnumeric():
         conn = conf.get_connection_by_id(int(args.connection))
@@ -246,7 +224,7 @@ def _handle_output(args):
 def _handle_request(args):
     logging.info('Triggering request of connection %s', args.connection)
 
-    conf = config.load(args.config, False)
+    conf = config.load(args.config)
 
     if args.connection.isnumeric():
         conn = conf.get_connection_by_id(int(args.connection))
@@ -272,11 +250,10 @@ def _handle_request(args):
 def main(raw_args=None):
     args = _parse_args(raw_args)
     _setup_logging(args)
-    _setup_pdb(args)
 
     try:
         args.command_handler(args)
-    except BaseException as e:
+    except Exception as e:
         if args.debug:
             raise
 

@@ -94,7 +94,7 @@ class SGXNode(SGXBase):
 
 
     async def deploy(self, module):
-        if module.deployed is not None:
+        if module.deployed:
             return
 
         async with aiofile.AIOFile(await module.sgxs, "rb") as f:
@@ -117,3 +117,5 @@ class SGXNode(SGXBase):
             command,
             log='Deploying {} on {}'.format(module.name, self.name)
             )
+
+        module.deployed = True

@@ -7,6 +7,12 @@ import binascii
 def dump(obj):
     assert False, 'No dumper for {}'.format(type(obj))
 
+
+@dump.register(list)
+def _(l):
+    return [dump(e) for e in l]
+
+
 @dump.register(bytes)
 @dump.register(bytearray)
 def _(bs):

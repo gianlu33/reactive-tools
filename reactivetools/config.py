@@ -113,11 +113,10 @@ class Config:
             await module.deploy()
 
 
-def load(file_name, deploy=True):
+def load(file_name):
     with open(file_name, 'r') as f:
         contents = json.load(f)
 
-    set_deploy(deploy)
     config = Config()
 
     config.nodes = load_list(contents['nodes'],
@@ -168,53 +167,12 @@ def _load_module(mod_dict, config):
 
 def _load_connection(conn_dict, config):
     evaluate_rules(os.path.join("default", "connection.yaml"), conn_dict)
-
-    direct = conn_dict.get('direct')
-    from_module = config.get_module(conn_dict['from_module']) if is_present(conn_dict, 'from_module') else None
-    from_output = conn_dict.get('from_output')
-    from_request = conn_dict.get('from_request')
-    to_module = config.get_module(conn_dict['to_module'])
-    to_input = conn_dict.get('to_input')
-    to_handler = conn_dict.get('to_handler')
-    encryption = Encryption.from_str(conn_dict['encryption'])
-    key = parse_key(conn_dict.get('key'))
-    nonce = conn_dict.get('nonce')
-    id = conn_dict.get('id')
-    name = conn_dict.get('name')
-
-    if is_deploy():
-        id = Connection.get_connection_id() # incremental ID
-        key = _generate_key(from_module, to_module, encryption) # auto-generated key
-        nonce = 0 # only used for direct connections
-
-    if from_module is not None:
-        from_module.connections += 1
-    to_module.connections += 1
-
-    if name is None:
-        name = "conn{}".format(id)
-
-    return Connection(name, from_module, from_output, from_request, to_module,
-        to_input, to_handler, encryption, key, id, nonce, direct)
+    return Connection.load(conn_dict, config)
 
 
 def _load_periodic_event(events_dict, config):
     evaluate_rules(os.path.join("default", "periodic_event.yaml"), events_dict)
-
-    module = config.get_module(events_dict['module'])
-    entry = events_dict['entry']
-    frequency = events_dict['frequency']
-
-    return PeriodicEvent(module, entry, frequency)
-
-
-def _generate_key(module1, module2, encryption):
-    if (module1 is not None and encryption not in module1.get_supported_encryption()) \
-        or encryption not in module2.get_supported_encryption():
-       raise Error('Encryption {} not supported between {} and {}'.format(
-            str(encryption), module1.name, module2.name))
-
-    return tools.generate_key(encryption.get_key_size())
+    return PeriodicEvent.load(events_dict, config)
 
 
 def evaluate_rules(rules_file, dict):
@@ -241,11 +199,6 @@ def dump_config(config, file_name):
         json.dump(dump(config), f, indent=4)
 
 
-@dump.register(list)
-def _(l):
-    return [dump(e) for e in l]
-
-
 @dump.register(Config)
 def _(config):
     dump(config.nodes)
@@ -269,28 +222,9 @@ def _(module):
 
 @dump.register(Connection)
 def _(conn):
-    from_module = None if conn.direct else conn.from_module.name
-
-    return {
-        "name": conn.name,
-        "from_module": from_module,
-        "from_output": conn.from_output,
-        "from_request": conn.from_request,
-        "to_module": conn.to_module.name,
-        "to_input": conn.to_input,
-        "to_handler": conn.to_handler,
-        "encryption": conn.encryption.to_str(),
-        "key": dump(conn.key),
-        "id": conn.id,
-        "direct": conn.direct,
-        "nonce": conn.nonce
-    }
+    return conn.dump()
 
 
 @dump.register(PeriodicEvent)
 def _(event):
-    return {
-        "module": event.module.name,
-        "entry": event.entry,
-        "frequency": event.frequency
-    }
+    return event.dump()

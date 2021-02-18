@@ -62,10 +62,9 @@ class SGXModule(Module):
     _sp_keys_fut = asyncio.ensure_future(_generate_sp_keys())
     _ra_sp_fut = asyncio.ensure_future(_run_ra_sp())
 
-    def __init__(self, name, node, priority, deployed, vendor_key, ra_settings,
-                    features, id=None, binary=None, key=None, sgxs=None,
-                    signature=None, data=None):
-        super().__init__(name, node, priority, deployed)
+    def __init__(self, name, node, priority, deployed, nonce, vendor_key,
+                ra_settings, features, id, binary, key, sgxs, signature, data):
+        super().__init__(name, node, priority, deployed, nonce)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
         self.__generate_fut = tools.init_future(data)
@@ -87,6 +86,7 @@ class SGXModule(Module):
         node = node_obj
         priority = mod_dict.get('priority')
         deployed = mod_dict.get('deployed')
+        nonce = mod_dict.get('nonce')
         vendor_key = parse_file_name(mod_dict['vendor_key'])
         settings = parse_file_name(mod_dict['ra_settings'])
         features = mod_dict.get('features')
@@ -97,14 +97,17 @@ class SGXModule(Module):
         signature = parse_file_name(mod_dict.get('signature'))
         data = mod_dict.get('data')
 
-        return SGXModule(name, node, priority, deployed, vendor_key, settings,
-                        features, id, binary, key, sgxs, signature, data)
+        return SGXModule(name, node, priority, deployed, nonce, vendor_key,
+                settings, features, id, binary, key, sgxs, signature, data)
 
     def dump(self):
         return {
             "type": "sgx",
             "name": self.name,
             "node": self.node.name,
+            "priority": self.priority,
+            "deployed": self.deployed,
+            "nonce": self.nonce,
             "vendor_key": self.vendor_key,
             "ra_settings": self.ra_settings,
             "features": self.features,

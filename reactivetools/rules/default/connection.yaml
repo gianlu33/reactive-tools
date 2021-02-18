@@ -6,6 +6,10 @@ to_module required:
 encryption required:
   is_present(dict, "encryption")
 
+established must be a bool, if exists:
+  not is_present(dict, "established") or
+  (is_present(dict, "established") and isinstance(dict["established"], bool))
+
 either direct=True or from_module + from_{output, request}:
   has_value(dict, "direct", True) !=
   (is_present(dict, "from_module") and
@@ -20,22 +24,24 @@ direct or from_output->to_input or from_request->to_handler:
   (is_present(dict, "from_request") and is_present(dict, "to_handler"))
 
 key present ONLY after deployment:
-  (is_deploy() and not is_present(dict, "key")) or
-  (not is_deploy() and is_present(dict, "key"))
+  (not has_value(dict, "established", True) and not is_present(dict, "key")) or
+  (has_value(dict, "established", True) and is_present(dict, "key"))
 
 nonce present ONLY after deployment:
-  (is_deploy() and not is_present(dict, "nonce")) or
-  (not is_deploy() and is_present(dict, "nonce"))
+  (not has_value(dict, "established", True) and not is_present(dict, "nonce")) or
+  (has_value(dict, "established", True) and is_present(dict, "nonce"))
 
 id present ONLY after deployment:
-  (is_deploy() and not is_present(dict, "id")) or
-  (not is_deploy() and is_present(dict, "id"))
+  (not has_value(dict, "established", True) and not is_present(dict, "id")) or
+  (has_value(dict, "established", True) and is_present(dict, "id"))
 
 name mandatory after deployment:
-  is_deploy() or (not is_deploy() and is_present(dict, "name"))
+  not has_value(dict, "established", True) or
+  (has_value(dict, "established", True) and is_present(dict, "name"))
 
 direct mandatory after deployment:
-  is_deploy() or (not is_deploy() and is_present(dict, "direct"))
+  not has_value(dict, "established", True) or
+  (has_value(dict, "established", True) and is_present(dict, "direct"))
 
 from_module and to_module must be different:
   dict.get("from_module") != dict["to_module"]
@@ -43,4 +49,4 @@ from_module and to_module must be different:
 only authorized keys:
   authorized_keys(dict, ["name", "from_module", "from_output",
   "from_request", "to_module", "to_input", "to_handler",
-  "encryption", "key", "id", "direct", "nonce"])
+  "encryption", "key", "id", "direct", "nonce", "established"])

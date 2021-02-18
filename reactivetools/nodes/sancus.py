@@ -60,7 +60,7 @@ class SancusNode(Node):
     async def deploy(self, module):
         assert module.node is self
 
-        if module.deployed is not None:
+        if module.deployed:
             return
 
         async with aiofile.AIOFile(await module.binary, "rb") as f:
@@ -95,6 +95,7 @@ class SancusNode(Node):
         with open(symtab_file, "wb") as f:
             f.write(symtab[:-1]) # Drop last 0 byte
 
+        module.deployed = True
         return sm_id, symtab_file
 
 

@@ -18,9 +18,9 @@ class Error(Exception):
 
 
 class SancusModule(Module):
-    def __init__(self, name, node, priority, deployed, files, cflags, ldflags,
-                 binary=None, id=None, symtab=None, key=None):
-        super().__init__(name, node, priority, deployed)
+    def __init__(self, name, node, priority, deployed, nonce, files, cflags,
+            ldflags, binary, id, symtab, key):
+        super().__init__(name, node, priority, deployed, nonce)
 
         self.files = files
         self.cflags = cflags
@@ -37,6 +37,7 @@ class SancusModule(Module):
         node = node_obj
         priority = mod_dict.get('priority')
         deployed = mod_dict.get('deployed')
+        nonce = mod_dict.get('nonce')
         files = load_list(mod_dict['files'],
                            lambda f: parse_file_name(f))
         cflags = load_list(mod_dict.get('cflags'))
@@ -45,19 +46,25 @@ class SancusModule(Module):
         id = mod_dict.get('id')
         symtab = parse_file_name(mod_dict.get('symtab'))
         key = parse_key(mod_dict.get('key'))
-        return SancusModule(name, node, priority, deployed, files, cflags, ldflags,
-                            binary, id, symtab, key)
+        
+        return SancusModule(name, node, priority, deployed, nonce, files, cflags,
+                ldflags, binary, id, symtab, key)
 
 
     def dump(self):
         return {
             "type": "sancus",
             "name": self.name,
-            "files": dump(self.files),
             "node": self.node.name,
+            "priority": self.priority,
+            "deployed": self.deployed,
+            "nonce": self.nonce,
+            "files": dump(self.files),
+            "cflags": dump(self.cflags),
+            "ldflags": dump(self.ldflags),
             "binary": dump(self.binary),
-            "symtab": dump(self.symtab),
             "id": dump(self.id),
+            "symtab": dump(self.symtab),
             "key": dump(self.key)
         }
 
