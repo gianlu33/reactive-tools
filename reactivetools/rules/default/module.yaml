@@ -20,3 +20,20 @@ name must be a str:
 
 node must be a str:
   isinstance(dict["node"], str)
+
+priority must be an int:
+  not is_present(dict, "priority") or
+  (is_present(dict, "priority") and isinstance(dict["priority"], int))
+
+nonce must be an int:
+  not is_present(dict, "nonce") or
+  (is_present(dict, "nonce") and isinstance(dict["nonce"], int))
+
+deployed must be a bool:
+    not is_present(dict, "deployed") or
+    (is_present(dict, "deployed") and isinstance(dict["deployed"], bool))
+
+## Other constraints ##
+nonce required ONLY after deployment:
+  (not has_value(dict, "deployed", True) and not is_present(dict, "nonce")) or
+  (has_value(dict, "deployed", True) and is_present(dict, "nonce"))
