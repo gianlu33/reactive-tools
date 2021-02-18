@@ -111,6 +111,8 @@ class SancusNode(Node):
         conn_id_packed = tools.pack_int16(conn_id)
         ad = conn_id_packed + io_id + nonce
 
+        module.nonce += 1
+
         cipher = await encryption.SPONGENT.encrypt(module_key, ad, key)
 
         # The payload format is [sm_id, entry_id, 16 bit nonce, index, wrapped(key), tag]
@@ -143,8 +145,6 @@ class SancusNode(Node):
 
         if set_key_tag != expected_tag:
             raise Error('Module response has wrong tag')
-
-        module.nonce += 1
 
 
     async def connect(self, to_module, conn_id):
