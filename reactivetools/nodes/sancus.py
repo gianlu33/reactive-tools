@@ -105,7 +105,7 @@ class SancusNode(Node):
         module_id, module_key, io_id = await asyncio.gather(
                                module.id, module.key, conn_io.get_index(module))
 
-        nonce = tools.pack_int16(self._get_nonce(module))
+        nonce = tools.pack_int16(module.nonce)
         io_id = tools.pack_int16(io_id)
         conn_id_packed = tools.pack_int16(conn_id)
         ad = conn_id_packed + io_id + nonce
@@ -142,6 +142,8 @@ class SancusNode(Node):
 
         if set_key_tag != expected_tag:
             raise Error('Module response has wrong tag')
+
+        module.nonce += 1
 
 
     async def connect(self, to_module, conn_id):

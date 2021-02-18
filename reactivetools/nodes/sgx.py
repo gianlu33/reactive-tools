@@ -36,7 +36,8 @@ class SGXBase(Node):
         await module.deploy()
 
         io_id = await conn_io.get_index(module)
-        nonce = self._get_nonce(module)
+        nonce = module.nonce
+        module.nonce += 1
 
         ad =    tools.pack_int8(encryption)                     + \
                 tools.pack_int16(conn_id)                       + \

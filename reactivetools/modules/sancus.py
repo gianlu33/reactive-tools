@@ -102,10 +102,6 @@ class SancusModule(Module):
         return await self.__deploy_fut
 
 
-    async def call(self, entry, arg=None):
-        return await self.node.call(self, entry, arg)
-
-
     async def get_id(self):
         return await self.id
 
@@ -124,14 +120,6 @@ class SancusModule(Module):
             return int(entry)
 
         return await self._get_entry_id(entry)
-
-
-    async def get_request_id(self, request):
-        raise Error("Requests not supported in Sancus")
-
-
-    async def get_handler_id(self, handler):
-        raise Error("Handlers not supported in Sancus")
 
 
     async def get_key(self):

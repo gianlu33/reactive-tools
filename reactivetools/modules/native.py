@@ -124,10 +124,6 @@ class NativeModule(Module):
         await self.__deploy_fut
 
 
-    async def call(self, entry, arg=None):
-        return await self.node.call(self, entry, arg)
-
-
     async def get_id(self):
         return self.id
 

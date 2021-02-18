@@ -194,10 +194,6 @@ class SGXModule(Module):
         return await self.__build_fut
 
 
-    async def call(self, entry, arg=None):
-        return await self.node.call(self, entry, arg)
-
-
     async def deploy(self):
         if self.__deploy_fut is None:
             self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
