@@ -63,7 +63,8 @@ class SGXModule(Module):
     _ra_sp_fut = asyncio.ensure_future(_run_ra_sp())
 
     def __init__(self, name, node, priority, deployed, nonce, vendor_key,
-                ra_settings, features, id, binary, key, sgxs, signature, data):
+                ra_settings, features, id, binary, key, sgxs, signature, data,
+                folder):
         super().__init__(name, node, priority, deployed, nonce)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
@@ -78,6 +79,7 @@ class SGXModule(Module):
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = os.path.join(os.getcwd(), "build", name)
+        self.folder = folder
 
 
     @staticmethod
@@ -96,9 +98,10 @@ class SGXModule(Module):
         sgxs = parse_file_name(mod_dict.get('sgxs'))
         signature = parse_file_name(mod_dict.get('signature'))
         data = mod_dict.get('data')
+        folder = mod_dict.get('folder') or name
 
         return SGXModule(name, node, priority, deployed, nonce, vendor_key,
-                settings, features, id, binary, key, sgxs, signature, data)
+                settings, features, id, binary, key, sgxs, signature, data, folder)
 
     def dump(self):
         return {
@@ -116,7 +119,8 @@ class SGXModule(Module):
             "sgxs": dump(self.sgxs),
             "signature": dump(self.sig),
             "key": dump(self.key),
-            "data": dump(self.data)
+            "data": dump(self.data),
+            "folder": self.folder
         }
 
     # --- Properties --- #
@@ -325,7 +329,7 @@ class SGXModule(Module):
 
         args = Object()
 
-        args.input = self.name
+        args.input = self.folder
         args.output = self.output
         args.moduleid = self.id
         args.emport = self.node.deploy_port
@@ -349,7 +353,7 @@ class SGXModule(Module):
         await tools.run_async(*cmd)
 
         binary = os.path.join(self.output, "target", SGX_TARGET,
-                        glob.get_build_mode().to_str(), self.name)
+                        glob.get_build_mode().to_str(), self.folder)
 
         logging.info("Built module {}".format(self.name))
 

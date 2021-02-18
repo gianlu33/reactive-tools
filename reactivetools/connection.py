@@ -44,8 +44,6 @@ class ConnectionIndex():
         return self.index
 
 class Connection:
-    cnt = 0
-
     def __init__(self, name, from_module, from_output, from_request, to_module,
         to_input, to_handler, encryption, key, id, nonce, direct, established):
         self.name = name
@@ -90,7 +88,8 @@ class Connection:
         established = conn_dict.get('established')
 
         if not established:
-            id = Connection.get_connection_id() # incremental ID
+            id = config.connections_current_id # incremental ID
+            config.connections_current_id += 1
             key = Connection.generate_key(from_module, to_module, encryption) # auto-generated key
             nonce = 0 # only used for direct connections
 
@@ -163,13 +162,6 @@ class Connection:
 
         logging.info('Direct connection %d:%s to %s:%s on %s established',
                      self.id, self.name, self.to_module.name, self.to_index.name, to_node.name)
-
-
-    @staticmethod
-    def get_connection_id():
-        id = Connection.cnt
-        Connection.cnt += 1
-        return id
 
 
     @staticmethod

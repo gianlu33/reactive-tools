@@ -22,7 +22,7 @@ class Error(Exception):
 
 class NativeModule(Module):
     def __init__(self, name, node, priority, deployed, nonce, features,
-                id, binary, key, data):
+                id, binary, key, data, folder):
         super().__init__(name, node, priority, deployed, nonce)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
@@ -33,6 +33,8 @@ class NativeModule(Module):
         self.id = id if id is not None else node.get_module_id()
         self.port = self.node.reactive_port + self.id
         self.output = os.path.join(os.getcwd(), "build", name)
+        self.folder = folder
+
 
     @staticmethod
     def load(mod_dict, node_obj):
@@ -46,9 +48,10 @@ class NativeModule(Module):
         binary = parse_file_name(mod_dict.get('binary'))
         key = parse_key(mod_dict.get('key'))
         data = mod_dict.get('data')
+        folder = mod_dict.get('folder') or name
 
         return NativeModule(name, node, priority, deployed, nonce, features,
-                id, binary, key, data)
+                id, binary, key, data, folder)
 
     def dump(self):
         return {
@@ -62,7 +65,8 @@ class NativeModule(Module):
             "id": self.id,
             "binary": dump(self.binary),
             "key": dump(self.key),
-            "data": dump(self.data)
+            "data": dump(self.data),
+            "folder": self.folder
         }
 
     # --- Properties --- #
@@ -225,7 +229,7 @@ class NativeModule(Module):
 
         args = Object()
 
-        args.input = self.name
+        args.input = self.folder
         args.output = self.output
         args.moduleid = self.id
         args.emport = self.node.deploy_port
@@ -249,7 +253,7 @@ class NativeModule(Module):
         await tools.run_async(*cmd)
 
         binary = os.path.join(self.output,
-                        "target", glob.get_build_mode().to_str(), self.name)
+                        "target", glob.get_build_mode().to_str(), self.folder)
 
         logging.info("Built module {}".format(self.name))
         return binary

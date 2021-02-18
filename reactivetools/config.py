@@ -28,6 +28,7 @@ class Config:
         self.nodes = []
         self.modules = []
         self.connections = []
+        self.connections_id = 0
 
     def get_node(self, name):
         for n in self.nodes:
@@ -124,6 +125,8 @@ def load(file_name):
     config.modules = load_list(contents['modules'],
                                 lambda m: _load_module(m, config))
 
+    config.connections_current_id = contents.get('connections_current_id') or 0
+
     if 'connections' in contents:
         config.connections = load_list(contents['connections'],
                                         lambda c: _load_connection(c, config))
@@ -205,6 +208,7 @@ def _(config):
     return {
             'nodes': dump(config.nodes),
             'modules': dump(config.modules),
+            'connections_current_id': config.connections_current_id,
             'connections': dump(config.connections),
             'periodic-events' : dump(config.periodic_events)
         }
