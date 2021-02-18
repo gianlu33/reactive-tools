@@ -10,24 +10,18 @@ from ..dumpers import *
 from ..loaders import *
 
 class NativeNode(SGXBase):
+    type = "native"
+
     @staticmethod
     def load(node_dict):
         name = node_dict['name']
         ip_address = ipaddress.ip_address(node_dict['ip_address'])
         reactive_port = node_dict['reactive_port']
         deploy_port = node_dict.get('deploy_port', reactive_port)
+        module_id = node_dict.get('module_id')
 
-        return NativeNode(name, ip_address, reactive_port, deploy_port)
-
-
-    def dump(self):
-        return {
-            "type": "native",
-            "name": self.name,
-            "ip_address": str(self.ip_address),
-            "reactive_port": self.reactive_port,
-            "deploy_port": self.deploy_port
-        }
+        return NativeNode(name, ip_address, reactive_port, deploy_port,
+                    module_id)
 
 
     async def deploy(self, module):
