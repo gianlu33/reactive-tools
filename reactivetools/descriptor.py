@@ -1,5 +1,6 @@
 import json
 import yaml
+import os
 from enum import IntEnum
 
 
@@ -28,6 +29,9 @@ class DescriptorType(IntEnum):
 
     @staticmethod
     def load_any(file):
+        if not os.path.exists(file):
+            raise Error("Input file does not exist")
+
         try:
             return DescriptorType.JSON.load(file), DescriptorType.JSON
         except:
