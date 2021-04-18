@@ -36,12 +36,13 @@ async def _generate_sp_keys():
     pub = os.path.join(dir, "public_key.pem")
     ias_cert = os.path.join(dir, "ias_root_ca.pem")
 
-    cmd = "ssh-keygen"
-    args_private = "-t rsa -f {} -b 2048 -N ''".format(priv).split()
-    args_public = "-f {}.pub -e -m pem".format(priv).split()
+    cmd = "openssl"
+
+    args_private = "genrsa -f4 -out {} 2048".format(priv).split()
+    args_public = "rsa -in {} -outform PEM -pubout -out {}".format(priv, pub).split()
 
     await tools.run_async_shell(cmd, *args_private)
-    await tools.run_async(cmd, *args_public, output_file=pub)
+    await tools.run_async_shell(cmd, *args_public)
 
     cmd = "curl"
     url = "https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem".split()
