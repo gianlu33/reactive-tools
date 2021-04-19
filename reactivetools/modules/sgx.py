@@ -388,6 +388,11 @@ class SGXModule(Module):
         key_arr = eval(out) # from string to array
         key = bytes(key_arr) # from array to bytes
 
+        # fix: give the module the time to change state
+        # If the EM is multithreaded, it may happen that we send a set_key
+        # command before the module is actually listening for new connections
+        # TODO: find a better way to do this
+        await asyncio.sleep(2)
         logging.info("Done Remote Attestation of {}. Key: {}".format(self.name, key_arr))
 
         return key
