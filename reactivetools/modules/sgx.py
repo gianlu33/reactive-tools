@@ -382,6 +382,7 @@ class SGXModule(Module):
         env["ENCLAVE_SIG"] = await self.sig
         env["ENCLAVE_HOST"] = str(self.node.ip_address)
         env["ENCLAVE_PORT"] = str(self.port)
+        env["AESM_PORT"] = str(self.node.aesm_port)
 
         out, _ = await tools.run_async_output(ATTESTER, env=env)
         key_arr = eval(out) # from string to array

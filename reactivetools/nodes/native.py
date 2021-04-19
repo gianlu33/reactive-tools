@@ -24,6 +24,17 @@ class NativeNode(SGXBase):
                     module_id)
 
 
+    def dump(self):
+        return {
+            "type": self.type,
+            "name": self.name,
+            "ip_address": str(self.ip_address),
+            "reactive_port": self.reactive_port,
+            "deploy_port": self.deploy_port,
+            "module_id": self.__moduleid
+        }
+
+
     async def deploy(self, module):
         if module.deployed:
             return

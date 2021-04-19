@@ -25,17 +25,6 @@ class SGXBase(Node):
         self.__moduleid = module_id if module_id else 1
 
 
-    def dump(self):
-        return {
-            "type": self.type,
-            "name": self.name,
-            "ip_address": str(self.ip_address),
-            "reactive_port": self.reactive_port,
-            "deploy_port": self.deploy_port,
-            "module_id": self.__moduleid
-        }
-
-
     @abstractmethod
     async def deploy(self, module):
         pass
@@ -85,6 +74,11 @@ class SGXBase(Node):
 class SGXNode(SGXBase):
     type = "sgx"
 
+    def __init__(self, name, ip_address, reactive_port, deploy_port, module_id, aesm_port):
+        super().__init__(name, ip_address, reactive_port, deploy_port, module_id)
+
+        self.aesm_port = aesm_port or 13741
+
     @staticmethod
     def load(node_dict):
         name = node_dict['name']
@@ -92,9 +86,22 @@ class SGXNode(SGXBase):
         reactive_port = node_dict['reactive_port']
         deploy_port = node_dict.get('deploy_port', reactive_port)
         module_id = node_dict.get('module_id')
+        aesm_port = node_dict.get('aesm_port')
 
         return SGXNode(name, ip_address, reactive_port, deploy_port,
-                    module_id)
+                    module_id, aesm_port)
+
+
+    def dump(self):
+        return {
+            "type": self.type,
+            "name": self.name,
+            "ip_address": str(self.ip_address),
+            "reactive_port": self.reactive_port,
+            "deploy_port": self.deploy_port,
+            "module_id": self.__moduleid,
+            "aesm_port": self.aesm_port
+        }
 
 
     async def deploy(self, module):
