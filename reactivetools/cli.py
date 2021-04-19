@@ -204,10 +204,7 @@ def _handle_deploy(args):
     os.chdir(args.workspace)
     conf = config.load(args.config, args.output)
 
-    if args.deploy_in_order:
-        conf.deploy_modules_ordered()
-
-    conf.install()
+    conf.deploy(args.deploy_in_order)
 
     if args.result is not None:
         logging.info('Writing post-deployment configuration to %s', args.result)
@@ -233,9 +230,10 @@ def _handle_attest(args):
 
     conf = config.load(args.config, args.output)
 
-    # call asyncio
+    conf.attest()
 
     out_file = args.result or args.config
+    logging.info('Writing post-deployment configuration to %s', out_file)
     config.dump_config(conf, out_file)
     conf.cleanup()
 
@@ -245,9 +243,10 @@ def _handle_connect(args):
 
     conf = config.load(args.config, args.output)
 
-    # call asyncio
+    conf.connect()
 
     out_file = args.result or args.config
+    logging.info('Writing post-deployment configuration to %s', out_file)
     config.dump_config(conf, out_file)
     conf.cleanup()
 

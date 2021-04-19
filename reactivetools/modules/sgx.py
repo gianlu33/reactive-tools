@@ -382,8 +382,6 @@ class SGXModule(Module):
 
 
     async def __attest(self):
-        await self.deploy()
-
         env = {}
         env["SP_PRIVKEY"] = await SGXModule._get_ra_sp_priv_key()
         env["IAS_CERT"] = await SGXModule._get_ias_root_certificate()
@@ -403,5 +401,6 @@ class SGXModule(Module):
         # TODO: find a better way to do this
         await asyncio.sleep(2)
         logging.info("Done Remote Attestation of {}. Key: {}".format(self.name, key_arr))
+        self.attested = True
 
         return key

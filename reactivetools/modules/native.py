@@ -137,8 +137,10 @@ class NativeModule(Module):
 
 
     async def attest(self):
-        if not self.attested:
-            raise Error("Native modules do not have to be attested")
+        # Native attestation is not really needed.
+        # TODO with attestation-manager, we still need to send a msg to it
+        await self.key
+        self.attested = True
 
 
     async def get_id(self):
@@ -248,9 +250,6 @@ class NativeModule(Module):
 
         data, key = rustsgxgen.generate(args)
         logging.info("Generated code for module {}".format(self.name))
-
-        # attestation not really done here..
-        self.attested = True
 
         return data, key
 

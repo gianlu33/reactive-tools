@@ -62,32 +62,33 @@ class Config:
         raise Error('No connection with name {}'.format(name))
 
 
-    async def install_async(self):
-        await self.deploy_priority_modules()
+    async def deploy_priority_modules(self):
+        priority_modules = [sm for sm in self.modules if sm.priority is not None and not sm.deployed]
+        priority_modules.sort(key=lambda sm : sm.priority)
 
-        futures = map(Connection.establish, self.connections)
-        await asyncio.gather(*futures)
-
-        # this is needed if we don't have any connections, to ensure that
-        # the modules are actually deployed
-        # TODO: check if you want to only deploy or also do remote attestation
-        futures = map(lambda x : x.get_key(), self.modules)
-        await asyncio.gather(*futures)
-
-        futures = map(PeriodicEvent.register, self.periodic_events)
-        await asyncio.gather(*futures)
-
-    def install(self):
-        asyncio.get_event_loop().run_until_complete(self.install_async())
-
-    async def deploy_modules_ordered_async(self):
-        for module in self.modules:
+        logging.debug("Priority modules: {}".format([sm.name for sm in priority_modules]))
+        for module in priority_modules:
             await module.deploy()
 
 
-    def deploy_modules_ordered(self):
-        asyncio.get_event_loop().run_until_complete(
-                                self.deploy_modules_ordered_async())
+    async def deploy_async(self, in_order):
+        await self.deploy_priority_modules()
+
+        if in_order:
+            for module in self.modules:
+                if not module.deployed:
+                    await module.deploy()
+        else:
+            lst = self.modules
+            l_filter = lambda x : not x.deployed
+            l_map = lambda x : x.deploy()
+
+            futures = map(l_map, filter(l_filter, lst))
+            await asyncio.gather(*futures)
+
+
+    def deploy(self, in_order):
+        asyncio.get_event_loop().run_until_complete(self.deploy_async(in_order))
 
 
     async def build_async(self):
@@ -99,6 +100,32 @@ class Config:
         asyncio.get_event_loop().run_until_complete(self.build_async())
 
 
+    async def attest_async(self):
+        lst = self.modules
+        l_filter = lambda x : not x.attested
+        l_map = lambda x : x.attest()
+
+        futures = map(l_map, filter(l_filter, lst))
+        await asyncio.gather(*futures)
+
+
+    def attest(self):
+        asyncio.get_event_loop().run_until_complete(self.attest_async())
+
+
+    async def connect_async(self):
+        lst = self.connections
+        l_filter = lambda x : not x.established
+        l_map = lambda x : x.establish()
+
+        futures = map(l_map, filter(l_filter, lst))
+        await asyncio.gather(*futures)
+
+
+    def connect(self):
+        asyncio.get_event_loop().run_until_complete(self.connect_async())
+
+
     async def cleanup_async(self):
         coros = list(map(lambda c: c(), node_cleanup_coros + module_cleanup_coros))
         await asyncio.gather(*coros)
@@ -106,15 +133,6 @@ class Config:
 
     def cleanup(self):
         asyncio.get_event_loop().run_until_complete(self.cleanup_async())
-
-
-    async def deploy_priority_modules(self):
-        priority_modules = [sm for sm in self.modules if sm.priority is not None]
-        priority_modules.sort(key=lambda sm : sm.priority)
-
-        logging.debug("Priority modules: {}".format([sm.name for sm in priority_modules]))
-        for module in priority_modules:
-            await module.deploy()
 
 
 def load(file_name, output_type=None):
