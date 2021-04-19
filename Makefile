@@ -21,3 +21,6 @@ generate_key:
 
 run:
 	docker run --rm -it --network=host -v $(VOLUME):/usr/src/app/ $(REPO):$(TAG) bash
+
+pull:
+	docker pull $(REPO):$(TAG)
