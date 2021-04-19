@@ -21,9 +21,9 @@ class Error(Exception):
 
 
 class NativeModule(Module):
-    def __init__(self, name, node, priority, deployed, nonce, features,
-                id, binary, key, data, folder):
-        super().__init__(name, node, priority, deployed, nonce)
+    def __init__(self, name, node, priority, deployed, nonce, attested, features,
+                id, binary, key, data, folder, port):
+        super().__init__(name, node, priority, deployed, nonce, attested)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
         self.__generate_fut = tools.init_future(data, key)
@@ -31,7 +31,7 @@ class NativeModule(Module):
 
         self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
-        self.port = self.node.reactive_port + self.id
+        self.port = port or self.node.reactive_port + self.id
         self.output = os.path.join(os.getcwd(), "build", name)
         self.folder = folder
 
@@ -43,15 +43,17 @@ class NativeModule(Module):
         priority = mod_dict.get('priority')
         deployed = mod_dict.get('deployed')
         nonce = mod_dict.get('nonce')
+        attested = mod_dict.get('attested')
         features = mod_dict.get('features')
         id = mod_dict.get('id')
         binary = parse_file_name(mod_dict.get('binary'))
         key = parse_key(mod_dict.get('key'))
         data = mod_dict.get('data')
         folder = mod_dict.get('folder') or name
+        port = mod_dict.get('port')
 
-        return NativeModule(name, node, priority, deployed, nonce, features,
-                id, binary, key, data, folder)
+        return NativeModule(name, node, priority, deployed, nonce, attested,
+                features, id, binary, key, data, folder, port)
 
     def dump(self):
         return {
@@ -61,12 +63,14 @@ class NativeModule(Module):
             "priority": self.priority,
             "deployed": self.deployed,
             "nonce": self.nonce,
+            "attested": self.attested,
             "features": self.features,
             "id": self.id,
             "binary": dump(self.binary),
             "key": dump(self.key),
             "data": dump(self.data),
-            "folder": self.folder
+            "folder": self.folder,
+            "port": self.port
         }
 
     # --- Properties --- #
@@ -130,6 +134,11 @@ class NativeModule(Module):
             self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
 
         await self.__deploy_fut
+
+
+    async def attest(self):
+        if not self.attested:
+            raise Error("Native modules do not have to be attested")
 
 
     async def get_id(self):
@@ -239,6 +248,9 @@ class NativeModule(Module):
 
         data, key = rustsgxgen.generate(args)
         logging.info("Generated code for module {}".format(self.name))
+
+        # attestation not really done here..
+        self.attested = True
 
         return data, key
 

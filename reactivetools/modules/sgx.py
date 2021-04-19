@@ -54,10 +54,10 @@ async def _generate_sp_keys():
 class SGXModule(Module):
     _sp_keys_fut = asyncio.ensure_future(_generate_sp_keys())
 
-    def __init__(self, name, node, priority, deployed, nonce, vendor_key,
+    def __init__(self, name, node, priority, deployed, nonce, attested, vendor_key,
                 ra_settings, features, id, binary, key, sgxs, signature, data,
-                folder):
-        super().__init__(name, node, priority, deployed, nonce)
+                folder, port):
+        super().__init__(name, node, priority, deployed, nonce, attested)
 
         self.__deploy_fut = tools.init_future(id) # not completely true
         self.__generate_fut = tools.init_future(data)
@@ -69,7 +69,7 @@ class SGXModule(Module):
         self.ra_settings = ra_settings
         self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
-        self.port = self.node.reactive_port + self.id
+        self.port = port or self.node.reactive_port + self.id
         self.output = os.path.join(os.getcwd(), "build", name)
         self.folder = folder
 
@@ -81,6 +81,7 @@ class SGXModule(Module):
         priority = mod_dict.get('priority')
         deployed = mod_dict.get('deployed')
         nonce = mod_dict.get('nonce')
+        attested = mod_dict.get('attested')
         vendor_key = parse_file_name(mod_dict['vendor_key'])
         settings = parse_file_name(mod_dict['ra_settings'])
         features = mod_dict.get('features')
@@ -91,9 +92,11 @@ class SGXModule(Module):
         signature = parse_file_name(mod_dict.get('signature'))
         data = mod_dict.get('data')
         folder = mod_dict.get('folder') or name
+        port = mod_dict.get('port')
 
-        return SGXModule(name, node, priority, deployed, nonce, vendor_key,
-                settings, features, id, binary, key, sgxs, signature, data, folder)
+        return SGXModule(name, node, priority, deployed, nonce, attested, vendor_key,
+                settings, features, id, binary, key, sgxs, signature, data, folder,
+                port)
 
     def dump(self):
         return {
@@ -103,6 +106,7 @@ class SGXModule(Module):
             "priority": self.priority,
             "deployed": self.deployed,
             "nonce": self.nonce,
+            "attested": self.attested,
             "vendor_key": self.vendor_key,
             "ra_settings": self.ra_settings,
             "features": self.features,
@@ -112,7 +116,8 @@ class SGXModule(Module):
             "signature": dump(self.sig),
             "key": dump(self.key),
             "data": dump(self.data),
-            "folder": self.folder
+            "folder": self.folder,
+            "port": self.port
         }
 
     # --- Properties --- #
@@ -153,10 +158,7 @@ class SGXModule(Module):
 
     @property
     async def key(self):
-        if self.__ra_fut is None:
-            self.__ra_fut = asyncio.ensure_future(self.__remote_attestation())
-
-        return await self.__ra_fut
+        return await self.attest()
 
 
     @property
@@ -198,6 +200,13 @@ class SGXModule(Module):
             self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
 
         await self.__deploy_fut
+
+
+    async def attest(self):
+        if self.__attest_fut is None:
+            self.__attest_fut = asyncio.ensure_future(self.__attest())
+
+        await self.__attest_fut
 
 
     async def get_id(self):
@@ -372,7 +381,7 @@ class SGXModule(Module):
         return sgxs, sig
 
 
-    async def __remote_attestation(self):
+    async def __attest(self):
         await self.deploy()
 
         env = {}

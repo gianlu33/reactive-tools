@@ -89,6 +89,40 @@ def _parse_args(args):
         help='Root directory containing all the modules and the configuration file',
         default=".")
 
+    # attest
+    attest_parser = subparsers.add_parser(
+        'attest',
+        help='Attest deployed modules')
+    attest_parser.set_defaults(command_handler=_handle_attest)
+    attest_parser.add_argument(
+        '--config',
+        help='Specify configuration file to use',
+        required=True)
+    attest_parser.add_argument(
+        '--result',
+        help='File to write the resulting configuration to')
+    attest_parser.add_argument(
+        '--output',
+        help='Output file type, between JSON and YAML',
+        default=None)
+
+    # connect
+    connect_parser = subparsers.add_parser(
+        'connect',
+        help='Connect deployed and attested modules')
+    connect_parser.set_defaults(command_handler=_handle_connect)
+    connect_parser.add_argument(
+        '--config',
+        help='Specify configuration file to use',
+        required=True)
+    connect_parser.add_argument(
+        '--result',
+        help='File to write the resulting configuration to')
+    connect_parser.add_argument(
+        '--output',
+        help='Output file type, between JSON and YAML',
+        default=None)
+
     # call
     call_parser = subparsers.add_parser(
         'call',
@@ -132,6 +166,9 @@ def _parse_args(args):
         help='Argument to pass to the output (hex byte array)',
         type=binascii.unhexlify,
         default=None)
+    output_parser.add_argument(
+        '--result',
+        help='File to write the resulting configuration to')
 
     # request
     request_parser = subparsers.add_parser(
@@ -152,6 +189,9 @@ def _parse_args(args):
         help='Argument to pass to the request (hex byte array)',
         type=binascii.unhexlify,
         default=None)
+    request_parser.add_argument(
+        '--result',
+        help='File to write the resulting configuration to')
 
     return parser.parse_args(args)
 
@@ -188,6 +228,30 @@ def _handle_build(args):
     conf.cleanup()
 
 
+def _handle_attest(args):
+    logging.info('Attesting modules')
+
+    conf = config.load(args.config, args.output)
+
+    # call asyncio
+
+    out_file = args.result or args.config
+    config.dump_config(conf, out_file)
+    conf.cleanup()
+
+
+def _handle_connect(args):
+    logging.info('Connecting modules')
+
+    conf = config.load(args.config, args.output)
+
+    # call asyncio
+
+    out_file = args.result or args.config
+    config.dump_config(conf, out_file)
+    conf.cleanup()
+
+
 def _handle_call(args):
     logging.info('Calling %s:%s', args.module, args.entry)
 
@@ -221,8 +285,8 @@ def _handle_output(args):
                                     conn.to_module.node.output(conn, args.arg))
 
     conn.nonce += 1
-    config.dump_config(conf, args.config)
-
+    out_file = args.result or args.config
+    config.dump_config(conf, out_file)
     conf.cleanup()
 
 
@@ -247,8 +311,8 @@ def _handle_request(args):
                                     conn.to_module.node.request(conn, args.arg))
 
     conn.nonce += 2
-    config.dump_config(conf, args.config)
-
+    out_file = args.result or args.config
+    config.dump_config(conf, out_file)
     conf.cleanup()
 
 

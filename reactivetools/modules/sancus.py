@@ -18,9 +18,9 @@ class Error(Exception):
 
 
 class SancusModule(Module):
-    def __init__(self, name, node, priority, deployed, nonce, files, cflags,
-            ldflags, binary, id, symtab, key):
-        super().__init__(name, node, priority, deployed, nonce)
+    def __init__(self, name, node, priority, deployed, nonce, attested, files,
+            cflags, ldflags, binary, id, symtab, key):
+        super().__init__(name, node, priority, deployed, nonce, attested)
 
         self.files = files
         self.cflags = cflags
@@ -38,6 +38,7 @@ class SancusModule(Module):
         priority = mod_dict.get('priority')
         deployed = mod_dict.get('deployed')
         nonce = mod_dict.get('nonce')
+        attested = mod_dict.get('attested')
         files = load_list(mod_dict['files'],
                            lambda f: parse_file_name(f))
         cflags = load_list(mod_dict.get('cflags'))
@@ -46,9 +47,9 @@ class SancusModule(Module):
         id = mod_dict.get('id')
         symtab = parse_file_name(mod_dict.get('symtab'))
         key = parse_key(mod_dict.get('key'))
-        
-        return SancusModule(name, node, priority, deployed, nonce, files, cflags,
-                ldflags, binary, id, symtab, key)
+
+        return SancusModule(name, node, priority, deployed, nonce, attested,
+                files, cflags, ldflags, binary, id, symtab, key)
 
 
     def dump(self):
@@ -59,6 +60,7 @@ class SancusModule(Module):
             "priority": self.priority,
             "deployed": self.deployed,
             "nonce": self.nonce,
+            "attested": self.attested,
             "files": dump(self.files),
             "cflags": dump(self.cflags),
             "ldflags": dump(self.ldflags),
@@ -107,6 +109,10 @@ class SancusModule(Module):
             self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
 
         return await self.__deploy_fut
+
+
+    async def attest(self):
+        raise Error("SancusModule::attest not implemented")
 
 
     async def get_id(self):

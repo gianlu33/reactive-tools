@@ -4,7 +4,7 @@ class Error(Exception):
     pass
 
 class Module(ABC):
-    def __init__(self, name, node, priority, deployed, nonce):
+    def __init__(self, name, node, priority, deployed, nonce, attested):
         """
         Generic attributes common to all Module subclasses
 
@@ -22,6 +22,7 @@ class Module(ABC):
         self.priority = priority
         self.deployed = deployed
         self.nonce = 0 if nonce is None else nonce
+        self.attested = attested
 
         self.connections = 0
 
@@ -92,6 +93,20 @@ class Module(ABC):
     """
     @abstractmethod
     async def deploy(self):
+        pass
+
+
+    """
+    ### Description ###
+    Coroutine. Attest a deployed module
+
+    ### Parameters ###
+    self: Module object
+
+    ### Returns ###
+    """
+    @abstractmethod
+    async def attest(self):
         pass
 
 
