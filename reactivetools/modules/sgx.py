@@ -63,7 +63,7 @@ class SGXModule(Module):
         self.__generate_fut = tools.init_future(data)
         self.__build_fut = tools.init_future(binary)
         self.__convert_sign_fut = tools.init_future(sgxs, signature)
-        self.__ra_fut = tools.init_future(key)
+        self.__attest_fut = tools.init_future(key)
 
         self.vendor_key = vendor_key
         self.ra_settings = ra_settings
