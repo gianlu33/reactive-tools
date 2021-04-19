@@ -31,7 +31,7 @@ class NativeNode(SGXBase):
             "ip_address": str(self.ip_address),
             "reactive_port": self.reactive_port,
             "deploy_port": self.deploy_port,
-            "module_id": self.__moduleid
+            "module_id": self._moduleid
         }
 
 
