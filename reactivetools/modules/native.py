@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import json
 
 from .base import Module
 
@@ -133,9 +134,26 @@ class NativeModule(Module):
 
 
     async def attest(self):
-        # Native attestation is not really needed.
-        # TODO with attestation-manager, we still need to send a msg to it
-        await self.key
+        data = {
+            "name": self.name,
+            "host": str(self.node.ip_address),
+            "port": self.port,
+            "key": list(await self.key)
+        }
+        data_file = tools.create_tmp(suffix=".json")
+        with open(data_file, "w") as f:
+            json.dump(data, f)
+
+        args = "--config {} --request attest-native --data {}".format(
+                    self.manager.config, data_file).split()
+        out, _ = await tools.run_async_output(glob.ATTMAN_CLI, *args)
+        key_arr = eval(out) # from string to array
+        key = bytes(key_arr) # from array to bytes
+
+        if await self.key != key:
+            raise Error("Received key is different from {} key".format(self.name))
+
+        logging.info("Done Remote Attestation of {}. Key: {}".format(self.name, key_arr))
         self.attested = True
 
 

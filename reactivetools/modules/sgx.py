@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import aiofile
+import json
 
 from .base import Module
 
@@ -30,8 +31,6 @@ class Error(Exception):
 
 
 class SGXModule(Module):
-    sp_lock = asyncio.Lock()
-
     def __init__(self, name, node, priority, deployed, nonce, attested, vendor_key,
                 ra_settings, features, id, binary, key, sgxs, signature, data,
                 folder, port):
@@ -40,8 +39,6 @@ class SGXModule(Module):
         self.__generate_fut = tools.init_future(data)
         self.__build_fut = tools.init_future(binary)
         self.__convert_sign_fut = tools.init_future(sgxs, signature)
-        self.__attest_fut = tools.init_future(key)
-        self.__sp_keys_fut = asyncio.ensure_future(self.__generate_sp_keys())
 
         self.key = key
         self.vendor_key = vendor_key
@@ -175,10 +172,29 @@ class SGXModule(Module):
 
 
     async def attest(self):
-        if self.__attest_fut is None:
-            self.__attest_fut = asyncio.ensure_future(self.__attest())
+        data = {
+            "name": self.name,
+            "host": str(self.node.ip_address),
+            "port": self.port,
+            "aesm_client_port": self.node.aesm_port,
+            "sigstruct": await self.sig
+        }
+        data_file = tools.create_tmp(suffix=".json")
+        with open(data_file, "w") as f:
+            json.dump(data, f)
 
-        await self.__attest_fut
+        # TODO include also settings?
+
+        # TODO args
+        args = "--config {} --request attest-sgx --data {}".format(
+                    self.manager.config, data_file).split()
+        out, _ = await tools.run_async_output(glob.ATTMAN_CLI, *args)
+        key_arr = eval(out) # from string to array
+        key = bytes(key_arr) # from array to bytes
+
+        logging.info("Done Remote Attestation of {}. Key: {}".format(self.name, key_arr))
+        self.key = key
+        self.attested = True
 
 
     async def get_id(self):
@@ -268,24 +284,6 @@ class SGXModule(Module):
 
     # --- Others --- #
 
-    async def get_ra_sp_pub_key(self):
-        pub, _, _ = await self.__sp_keys_fut
-
-        return pub
-
-
-    async def get_ra_sp_priv_key(self):
-        _, priv, _ = await self.__sp_keys_fut
-
-        return priv
-
-
-    async def get_ias_root_certificate(self):
-        _, _, cert = await self.__sp_keys_fut
-
-        return cert
-
-
     async def generate_code(self):
         if self.__generate_fut is None:
             self.__generate_fut = asyncio.ensure_future(self.__generate_code())
@@ -306,7 +304,7 @@ class SGXModule(Module):
         args.moduleid = self.id
         args.emport = self.node.deploy_port
         args.runner = rustsgxgen.Runner.SGX
-        args.spkey = await self.get_ra_sp_pub_key()
+        args.spkey = await self.manager.get_sp_pubkey()
         args.print = None
 
         data, _ = rustsgxgen.generate(args)
@@ -348,47 +346,3 @@ class SGXModule(Module):
         logging.info("Converted & signed module {}".format(self.name))
 
         return sgxs, sig
-
-
-    async def __attest(self):
-        env = {}
-        env["SP_PRIVKEY"] = await self.get_ra_sp_priv_key()
-        env["IAS_CERT"] = await self.get_ias_root_certificate()
-        env["ENCLAVE_SETTINGS"] = self.ra_settings
-        env["ENCLAVE_SIG"] = await self.sig
-        env["ENCLAVE_HOST"] = str(self.node.ip_address)
-        env["ENCLAVE_PORT"] = str(self.port)
-        env["AESM_PORT"] = str(self.node.aesm_port)
-
-        out, _ = await tools.run_async_output(ATTESTER, env=env)
-        key_arr = eval(out) # from string to array
-        key = bytes(key_arr) # from array to bytes
-
-        logging.info("Done Remote Attestation of {}. Key: {}".format(self.name, key_arr))
-        self.key = key
-        self.attested = True
-
-
-    async def __generate_sp_keys(self):
-        async with self.sp_lock:
-            priv = os.path.join(glob.BUILD_DIR, "private_key.pem")
-            pub = os.path.join(glob.BUILD_DIR, "public_key.pem")
-            ias_cert = os.path.join(glob.BUILD_DIR, "ias_root_ca.pem")
-
-            # check if already generated in a previous run
-            if all(map(lambda x : os.path.exists(x), [priv, pub, ias_cert])):
-                return pub, priv, ias_cert
-
-            cmd = "openssl"
-
-            args_private = "genrsa -f4 -out {} 2048".format(priv).split()
-            args_public = "rsa -in {} -outform PEM -pubout -out {}".format(priv, pub).split()
-
-            await tools.run_async_shell(cmd, *args_private)
-            await tools.run_async_shell(cmd, *args_public)
-
-            cmd = "curl"
-            url = "https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem".split()
-            await tools.run_async(cmd, *url, output_file=ias_cert)
-
-            return pub, priv, ias_cert

@@ -2,6 +2,7 @@ from enum import IntEnum
 import os
 
 BUILD_DIR = os.path.join(os.getcwd(), "build")
+ATTMAN_CLI = "attman-cli"
 
 class Error(Exception):
     pass
