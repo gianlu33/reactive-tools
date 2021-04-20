@@ -114,7 +114,7 @@ class SGXModule(Module):
             "binary": dump(self.binary),
             "sgxs": dump(self.sgxs),
             "signature": dump(self.sig),
-            "key": dump(self.key),
+            "key": dump(self.key) if self.attested else None, # avoid triggering RA
             "data": dump(self.data),
             "folder": self.folder,
             "port": self.port
@@ -206,7 +206,7 @@ class SGXModule(Module):
         if self.__attest_fut is None:
             self.__attest_fut = asyncio.ensure_future(self.__attest())
 
-        await self.__attest_fut
+        return await self.__attest_fut
 
 
     async def get_id(self):
