@@ -29,32 +29,8 @@ class Error(Exception):
     pass
 
 
-async def _generate_sp_keys():
-    priv = os.path.join(glob.BUILD_DIR, "private_key.pem")
-    pub = os.path.join(glob.BUILD_DIR, "public_key.pem")
-    ias_cert = os.path.join(glob.BUILD_DIR, "ias_root_ca.pem")
-
-    # check if already generated in a previous run
-    if all(map(lambda x : os.path.exists(x), [priv, pub, ias_cert])):
-        return pub, priv, ias_cert
-
-    cmd = "openssl"
-
-    args_private = "genrsa -f4 -out {} 2048".format(priv).split()
-    args_public = "rsa -in {} -outform PEM -pubout -out {}".format(priv, pub).split()
-
-    await tools.run_async_shell(cmd, *args_private)
-    await tools.run_async_shell(cmd, *args_public)
-
-    cmd = "curl"
-    url = "https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem".split()
-    await tools.run_async(cmd, *url, output_file=ias_cert)
-
-    return pub, priv, ias_cert
-
-
 class SGXModule(Module):
-    _sp_keys_fut = asyncio.ensure_future(_generate_sp_keys())
+    sp_lock = asyncio.Lock()
 
     def __init__(self, name, node, priority, deployed, nonce, attested, vendor_key,
                 ra_settings, features, id, binary, key, sgxs, signature, data,
@@ -65,6 +41,7 @@ class SGXModule(Module):
         self.__build_fut = tools.init_future(binary)
         self.__convert_sign_fut = tools.init_future(sgxs, signature)
         self.__attest_fut = tools.init_future(key)
+        self.__sp_keys_fut = asyncio.ensure_future(self.__generate_sp_keys())
 
         self.vendor_key = vendor_key
         self.ra_settings = ra_settings
@@ -288,32 +265,29 @@ class SGXModule(Module):
     # --- Static methods --- #
 
     @staticmethod
-    async def _get_ra_sp_pub_key():
-        pub, _, _ = await SGXModule._sp_keys_fut
-
-        return pub
-
-
-    @staticmethod
-    async def _get_ra_sp_priv_key():
-        _, priv, _ = await SGXModule._sp_keys_fut
-
-        return priv
-
-
-    @staticmethod
-    async def _get_ias_root_certificate():
-        _, _, cert = await SGXModule._sp_keys_fut
-
-        return cert
-
-
-    @staticmethod
     async def cleanup():
         pass
 
 
     # --- Others --- #
+
+    async def get_ra_sp_pub_key(self):
+        pub, _, _ = await self.__sp_keys_fut
+
+        return pub
+
+
+    async def get_ra_sp_priv_key(self):
+        _, priv, _ = await self.__sp_keys_fut
+
+        return priv
+
+
+    async def get_ias_root_certificate(self):
+        _, _, cert = await self.__sp_keys_fut
+
+        return cert
+
 
     async def generate_code(self):
         if self.__generate_fut is None:
@@ -335,7 +309,7 @@ class SGXModule(Module):
         args.moduleid = self.id
         args.emport = self.node.deploy_port
         args.runner = rustsgxgen.Runner.SGX
-        args.spkey = await self._get_ra_sp_pub_key()
+        args.spkey = await self.get_ra_sp_pub_key()
         args.print = None
 
         data, _ = rustsgxgen.generate(args)
@@ -381,8 +355,8 @@ class SGXModule(Module):
 
     async def __attest(self):
         env = {}
-        env["SP_PRIVKEY"] = await SGXModule._get_ra_sp_priv_key()
-        env["IAS_CERT"] = await SGXModule._get_ias_root_certificate()
+        env["SP_PRIVKEY"] = await self.get_ra_sp_priv_key()
+        env["IAS_CERT"] = await self.get_ias_root_certificate()
         env["ENCLAVE_SETTINGS"] = self.ra_settings
         env["ENCLAVE_SIG"] = await self.sig
         env["ENCLAVE_HOST"] = str(self.node.ip_address)
@@ -402,3 +376,28 @@ class SGXModule(Module):
         self.attested = True
 
         return key
+
+
+    async def __generate_sp_keys(self):
+        async with self.sp_lock:
+            priv = os.path.join(glob.BUILD_DIR, "private_key.pem")
+            pub = os.path.join(glob.BUILD_DIR, "public_key.pem")
+            ias_cert = os.path.join(glob.BUILD_DIR, "ias_root_ca.pem")
+
+            # check if already generated in a previous run
+            if all(map(lambda x : os.path.exists(x), [priv, pub, ias_cert])):
+                return pub, priv, ias_cert
+
+            cmd = "openssl"
+
+            args_private = "genrsa -f4 -out {} 2048".format(priv).split()
+            args_public = "rsa -in {} -outform PEM -pubout -out {}".format(priv, pub).split()
+
+            await tools.run_async_shell(cmd, *args_private)
+            await tools.run_async_shell(cmd, *args_public)
+
+            cmd = "curl"
+            url = "https://certificates.trustedservices.intel.com/Intel_SGX_Attestation_RootCA.pem".split()
+            await tools.run_async(cmd, *url, output_file=ias_cert)
+
+            return pub, priv, ias_cert
