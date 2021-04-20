@@ -71,13 +71,26 @@ class Config:
             await module.deploy()
 
 
-    async def deploy_async(self, in_order):
+    async def deploy_async(self, in_order, module):
+        # If module is not None, deploy just this one
+        if module:
+            mod = self.get_module(module)
+            if mod.deployed:
+                raise Error('Module {} already deployed'.format(module))
+
+            logging.info("Deploying {}".format(module))
+            await mod.deploy()
+            return
+
+        # First, deploy all modules that have a priority (in order of priority)
         await self.deploy_priority_modules()
 
+        # If deployment in order is desired, deploy one module at a time
         if in_order:
             for module in self.modules:
                 if not module.deployed:
                     await module.deploy()
+        # Otherwise, deploy all modules concurrently
         else:
             lst = self.modules
             l_filter = lambda x : not x.deployed
@@ -87,21 +100,23 @@ class Config:
             await asyncio.gather(*futures)
 
 
-    def deploy(self, in_order):
-        asyncio.get_event_loop().run_until_complete(self.deploy_async(in_order))
+    def deploy(self, in_order, module):
+        asyncio.get_event_loop().run_until_complete(self.deploy_async(in_order, module))
 
 
-    async def build_async(self):
-        futures = [module.build() for module in self.modules]
+    async def build_async(self, module):
+        lst = self.modules if not module else [self.get_module(module)]
+
+        futures = [module.build() for module in lst]
         await asyncio.gather(*futures)
 
 
-    def build(self):
-        asyncio.get_event_loop().run_until_complete(self.build_async())
+    def build(self, module):
+        asyncio.get_event_loop().run_until_complete(self.build_async(module))
 
 
-    async def attest_async(self):
-        lst = self.modules
+    async def attest_async(self, module):
+        lst = self.modules if not module else [self.get_module(module)]
 
         to_attest = list(filter(lambda x : not x.attested, lst))
 
@@ -114,12 +129,12 @@ class Config:
         await asyncio.gather(*futures)
 
 
-    def attest(self):
-        asyncio.get_event_loop().run_until_complete(self.attest_async())
+    def attest(self, module):
+        asyncio.get_event_loop().run_until_complete(self.attest_async(module))
 
 
-    async def connect_async(self):
-        lst = self.connections
+    async def connect_async(self, conn):
+        lst = self.connections if not conn else [self.get_connection_by_name(conn)]
 
         to_connect = list(filter(lambda x : not x.established, lst))
 
@@ -135,8 +150,8 @@ class Config:
         await asyncio.gather(*futures)
 
 
-    def connect(self):
-        asyncio.get_event_loop().run_until_complete(self.connect_async())
+    def connect(self, conn):
+        asyncio.get_event_loop().run_until_complete(self.connect_async(conn))
 
 
     async def cleanup_async(self):

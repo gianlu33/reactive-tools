@@ -70,6 +70,10 @@ def _parse_args(args):
         '--output',
         help='Output file type, between JSON and YAML',
         default=None)
+    deploy_parser.add_argument(
+        '--module',
+        help='Module to deploy (if not specified, deploy all modules not yet deployed)',
+        default=None)
 
     # build
     build_parser = subparsers.add_parser(
@@ -88,6 +92,10 @@ def _parse_args(args):
         '--workspace',
         help='Root directory containing all the modules and the configuration file',
         default=".")
+    build_parser.add_argument(
+        '--module',
+        help='Module to build (if not specified, build all modules)',
+        default=None)
 
     # attest
     attest_parser = subparsers.add_parser(
@@ -104,6 +112,10 @@ def _parse_args(args):
         '--output',
         help='Output file type, between JSON and YAML',
         default=None)
+    attest_parser.add_argument(
+        '--module',
+        help='Module to attest (if not specified, attest all modules not yet attested)',
+        default=None)
 
     # connect
     connect_parser = subparsers.add_parser(
@@ -119,6 +131,10 @@ def _parse_args(args):
     connect_parser.add_argument(
         '--output',
         help='Output file type, between JSON and YAML',
+        default=None)
+    connect_parser.add_argument(
+        '--connection',
+        help='Connection to establish (if not specified, establish all connections not yet established)',
         default=None)
 
     # call
@@ -196,12 +212,11 @@ def _handle_deploy(args):
     os.chdir(args.workspace)
     conf = config.load(args.config, args.output)
 
-    conf.deploy(args.deploy_in_order)
+    conf.deploy(args.deploy_in_order, args.module)
 
-    if args.result is not None:
-        logging.info('Writing post-deployment configuration to %s', args.result)
-        config.dump_config(conf, args.result)
-
+    out_file = args.result or args.config
+    logging.info('Writing post-deployment configuration to %s', out_file)
+    config.dump_config(conf, out_file)
     conf.cleanup()
 
 
@@ -213,7 +228,7 @@ def _handle_build(args):
     os.chdir(args.workspace)
     conf = config.load(args.config)
 
-    conf.build()
+    conf.build(args.module)
     conf.cleanup()
 
 
@@ -222,7 +237,7 @@ def _handle_attest(args):
 
     conf = config.load(args.config, args.output)
 
-    conf.attest()
+    conf.attest(args.module)
 
     out_file = args.result or args.config
     logging.info('Writing post-deployment configuration to %s', out_file)
@@ -235,7 +250,7 @@ def _handle_connect(args):
 
     conf = config.load(args.config, args.output)
 
-    conf.connect()
+    conf.connect(args.connection)
 
     out_file = args.result or args.config
     logging.info('Writing post-deployment configuration to %s', out_file)
