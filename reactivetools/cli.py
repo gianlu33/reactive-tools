@@ -326,6 +326,15 @@ def main(raw_args=None):
     args = _parse_args(raw_args)
     _setup_logging(args)
 
+    # create working directory
+    try:
+        os.mkdir(glob.BUILD_DIR)
+    except FileExistsError:
+        pass
+    except:
+        logging.error("Failed to create build dir")
+        sys.exit(-1)
+
     try:
         args.command_handler(args)
     except Exception as e:

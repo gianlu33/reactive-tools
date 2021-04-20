@@ -182,7 +182,7 @@ class SancusModule(Module):
                      self.name, ', '.join(map(str, self.files)))
 
         config = self._get_build_config(tools.get_verbosity())
-        objects = {str(p): tools.create_tmp(suffix='.o') for p in self.files}
+        objects = {str(p): tools.create_tmp(suffix='.o', dir=self.name) for p in self.files}
 
         cflags = config.cflags + self.cflags
         build_obj = lambda c, o: tools.run_async(config.cc, *cflags,
@@ -190,7 +190,7 @@ class SancusModule(Module):
         build_futs = [build_obj(c, o) for c, o in objects.items()]
         await asyncio.gather(*build_futs)
 
-        binary = tools.create_tmp(suffix='.elf')
+        binary = tools.create_tmp(suffix='.elf', dir=self.name)
         ldflags = config.ldflags + self.ldflags
 
         # setting connections (if not specified in JSON file)
@@ -219,7 +219,7 @@ class SancusModule(Module):
 
 
     async def __link(self):
-        linked_binary = tools.create_tmp(suffix='.elf')
+        linked_binary = tools.create_tmp(suffix='.elf', dir=self.name)
 
         # NOTE: we use '--noinhibit-exec' flag because the linker complains
         #       if the addresses of .bss section are not aligned to 2 bytes

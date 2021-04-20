@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+import os
+import logging
+from .. import glob
 
 class Error(Exception):
     pass
@@ -25,6 +28,16 @@ class Module(ABC):
         self.attested = attested
 
         self.connections = 0
+
+        # create temp dir
+        try:
+            os.mkdir(os.path.join(glob.BUILD_DIR, name))
+        except FileExistsError:
+            pass
+        except:
+            logging.error("Failed to create build dir for {}".format(name))
+            sys.exit(-1)
+            
 
     """
     ### Description ###

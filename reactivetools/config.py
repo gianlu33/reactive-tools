@@ -120,7 +120,7 @@ class Config:
 
         to_attest = list(filter(lambda x : not x.attested, lst))
 
-        if True in map(lambda x : not x.deployed, to_attest):
+        if any(map(lambda x : not x.deployed, to_attest)):
             raise Error("One or more modules to attest are not deployed yet")
 
         logging.info("To attest: {}".format([x.name for x in to_attest]))
@@ -138,10 +138,10 @@ class Config:
 
         to_connect = list(filter(lambda x : not x.established, lst))
 
-        if True in map(
+        if any(map(
             lambda x : (x.from_module and not x.from_module.attested) or
             not x.to_module.attested,
-        to_connect):
+        to_connect)):
             raise Error("One or more modules to connect are not attested yet")
 
         logging.info("To connect: {}".format([x.name for x in to_connect]))

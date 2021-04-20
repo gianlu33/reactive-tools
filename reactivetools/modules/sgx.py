@@ -30,11 +30,13 @@ class Error(Exception):
 
 
 async def _generate_sp_keys():
-    dir = tools.create_tmp_dir()
+    priv = os.path.join(glob.BUILD_DIR, "private_key.pem")
+    pub = os.path.join(glob.BUILD_DIR, "public_key.pem")
+    ias_cert = os.path.join(glob.BUILD_DIR, "ias_root_ca.pem")
 
-    priv = os.path.join(dir, "private_key.pem")
-    pub = os.path.join(dir, "public_key.pem")
-    ias_cert = os.path.join(dir, "ias_root_ca.pem")
+    # check if already generated in a previous run
+    if all(map(lambda x : os.path.exists(x), [priv, pub, ias_cert])):
+        return pub, priv, ias_cert
 
     cmd = "openssl"
 
@@ -69,7 +71,7 @@ class SGXModule(Module):
         self.features = [] if features is None else features
         self.id = id if id is not None else node.get_module_id()
         self.port = port or self.node.reactive_port + self.id
-        self.output = os.path.join(os.getcwd(), "build", name)
+        self.output = os.path.join(glob.BUILD_DIR, name)
         self.folder = folder
 
 
