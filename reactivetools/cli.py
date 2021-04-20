@@ -95,9 +95,8 @@ def _parse_args(args):
         help='Attest deployed modules')
     attest_parser.set_defaults(command_handler=_handle_attest)
     attest_parser.add_argument(
-        '--config',
-        help='Specify configuration file to use',
-        required=True)
+        'config',
+        help='Specify configuration file to use')
     attest_parser.add_argument(
         '--result',
         help='File to write the resulting configuration to')
@@ -112,9 +111,8 @@ def _parse_args(args):
         help='Connect deployed and attested modules')
     connect_parser.set_defaults(command_handler=_handle_connect)
     connect_parser.add_argument(
-        '--config',
-        help='Specify configuration file to use',
-        required=True)
+        'config',
+        help='Specify configuration file to use')
     connect_parser.add_argument(
         '--result',
         help='File to write the resulting configuration to')
@@ -129,10 +127,8 @@ def _parse_args(args):
         help='Call a deployed module')
     call_parser.set_defaults(command_handler=_handle_call)
     call_parser.add_argument(
-        '--config',
-        help='Specify configuration file to use '
-             '(the result of a previous "deploy" run)',
-        required=True)
+        'config',
+        help='Specify configuration file to use')
     call_parser.add_argument(
         '--module',
         help='Name of the module to call',
@@ -153,10 +149,8 @@ def _parse_args(args):
         help='Trigger the output of a \"direct\" connection (between deployer and SM)')
     output_parser.set_defaults(command_handler=_handle_output)
     output_parser.add_argument(
-        '--config',
-        help='Specify configuration file to use '
-             '(the result of a previous "deploy" run)',
-        required=True)
+        'config',
+        help='Specify configuration file to use')
     output_parser.add_argument(
         '--connection',
         help='Connection ID or name of the connection',
@@ -176,10 +170,8 @@ def _parse_args(args):
         help='Trigger the request of a \"direct\" connection (between deployer and SM)')
     request_parser.set_defaults(command_handler=_handle_request)
     request_parser.add_argument(
-        '--config',
-        help='Specify configuration file to use '
-             '(the result of a previous "deploy" run)',
-        required=True)
+        'config',
+        help='Specify configuration file to use')
     request_parser.add_argument(
         '--connection',
         help='Connection ID or name of the connection',
