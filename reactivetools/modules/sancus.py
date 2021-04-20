@@ -64,10 +64,10 @@ class SancusModule(Module):
             "files": dump(self.files),
             "cflags": dump(self.cflags),
             "ldflags": dump(self.ldflags),
-            "binary": dump(self.binary),
-            "id": dump(self.id),
-            "symtab": dump(self.symtab),
-            "key": dump(self.key)
+            "binary": dump(self.binary) if self.deployed else None,
+            "id": dump(self.id) if self.deployed else None,
+            "symtab": dump(self.symtab) if self.deployed else None,
+            "key": dump(self.key) if self.deployed else None
         }
 
 

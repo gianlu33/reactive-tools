@@ -25,7 +25,6 @@ class NativeModule(Module):
                 id, binary, key, data, folder, port):
         super().__init__(name, node, priority, deployed, nonce, attested)
 
-        self.__deploy_fut = tools.init_future(id) # not completely true
         self.__generate_fut = tools.init_future(data, key)
         self.__build_fut = tools.init_future(binary)
 
@@ -66,9 +65,9 @@ class NativeModule(Module):
             "attested": self.attested,
             "features": self.features,
             "id": self.id,
-            "binary": dump(self.binary),
-            "key": dump(self.key),
-            "data": dump(self.data),
+            "binary": dump(self.binary) if self.deployed else None,
+            "key": dump(self.key) if self.deployed else None, # For native, key is generated at compile time
+            "data": dump(self.data) if self.deployed else None,
             "folder": self.folder,
             "port": self.port
         }
@@ -130,10 +129,7 @@ class NativeModule(Module):
 
 
     async def deploy(self):
-        if self.__deploy_fut is None:
-            self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
-
-        await self.__deploy_fut
+        await self.node.deploy(self)
 
 
     async def attest(self):

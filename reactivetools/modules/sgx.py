@@ -59,7 +59,6 @@ class SGXModule(Module):
                 folder, port):
         super().__init__(name, node, priority, deployed, nonce, attested)
 
-        self.__deploy_fut = tools.init_future(id) # not completely true
         self.__generate_fut = tools.init_future(data)
         self.__build_fut = tools.init_future(binary)
         self.__convert_sign_fut = tools.init_future(sgxs, signature)
@@ -111,11 +110,11 @@ class SGXModule(Module):
             "ra_settings": self.ra_settings,
             "features": self.features,
             "id": self.id,
-            "binary": dump(self.binary),
-            "sgxs": dump(self.sgxs),
-            "signature": dump(self.sig),
-            "key": dump(self.key) if self.attested else None, # avoid triggering RA
-            "data": dump(self.data),
+            "binary": dump(self.binary) if self.deployed else None,
+            "sgxs": dump(self.sgxs) if self.deployed else None,
+            "signature": dump(self.sig) if self.deployed else None,
+            "key": dump(self.key) if self.attested else None,
+            "data": dump(self.data) if self.deployed else None,
             "folder": self.folder,
             "port": self.port
         }
@@ -196,10 +195,7 @@ class SGXModule(Module):
 
 
     async def deploy(self):
-        if self.__deploy_fut is None:
-            self.__deploy_fut = asyncio.ensure_future(self.node.deploy(self))
-
-        await self.__deploy_fut
+        await self.node.deploy(self)
 
 
     async def attest(self):
