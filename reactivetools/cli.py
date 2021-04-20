@@ -137,6 +137,26 @@ def _parse_args(args):
         help='Connection to establish (if not specified, establish all connections not yet established)',
         default=None)
 
+    # register
+    register_parser = subparsers.add_parser(
+        'register',
+        help='Register a periodic event')
+    register_parser.set_defaults(command_handler=_handle_register)
+    register_parser.add_argument(
+        'config',
+        help='Specify configuration file to use')
+    register_parser.add_argument(
+        '--result',
+        help='File to write the resulting configuration to')
+    register_parser.add_argument(
+        '--output',
+        help='Output file type, between JSON and YAML',
+        default=None)
+    register_parser.add_argument(
+        '--event',
+        help='Event to register (if not specified, register all events not yet registered)',
+        default=None)
+
     # call
     call_parser = subparsers.add_parser(
         'call',
@@ -251,6 +271,19 @@ def _handle_connect(args):
     conf = config.load(args.config, args.output)
 
     conf.connect(args.connection)
+
+    out_file = args.result or args.config
+    logging.info('Writing post-deployment configuration to %s', out_file)
+    config.dump_config(conf, out_file)
+    conf.cleanup()
+
+
+def _handle_register(args):
+    logging.info('Registering periodic events')
+
+    conf = config.load(args.config, args.output)
+
+    conf.register_event(args.event)
 
     out_file = args.result or args.config
     logging.info('Writing post-deployment configuration to %s', out_file)

@@ -62,6 +62,14 @@ class Config:
         raise Error('No connection with name {}'.format(name))
 
 
+    def get_periodic_event(self, name):
+        for e in self.periodic_events:
+            if e.name == name:
+                return e
+
+        raise Error('No periodic event with name {}'.format(name))
+
+
     async def deploy_priority_modules(self):
         priority_modules = [sm for sm in self.modules if sm.priority is not None and not sm.deployed]
         priority_modules.sort(key=lambda sm : sm.priority)
@@ -154,6 +162,24 @@ class Config:
         asyncio.get_event_loop().run_until_complete(self.connect_async(conn))
 
 
+    async def register_async(self, event):
+        lst = self.periodic_events if not event else [self.get_periodic_event(event)]
+
+        to_register = list(filter(lambda x : not x.established, lst))
+
+        if any(map(lambda x : not x.module.attested, to_register)):
+            raise Error("One or more modules are not attested yet")
+
+        logging.info("To register: {}".format([x.name for x in to_register]))
+
+        futures = map(lambda x : x.register(), to_register)
+        await asyncio.gather(*futures)
+
+
+    def register_event(self, event):
+        asyncio.get_event_loop().run_until_complete(self.register_async(event))
+
+
     async def cleanup_async(self):
         coros = list(map(lambda c: c(), node_cleanup_coros + module_cleanup_coros))
         await asyncio.gather(*coros)
@@ -180,6 +206,7 @@ def load(file_name, output_type=None):
                                 lambda m: _load_module(m, config))
 
     config.connections_current_id = contents.get('connections_current_id') or 0
+    config.events_current_id = contents.get('events_current_id') or 0
 
     if 'connections' in contents:
         config.connections = load_list(contents['connections'],
@@ -263,6 +290,7 @@ def _(config):
             'modules': dump(config.modules),
             'connections_current_id': config.connections_current_id,
             'connections': dump(config.connections),
+            'events_current_id': config.events_current_id,
             'periodic-events' : dump(config.periodic_events)
         }
 
