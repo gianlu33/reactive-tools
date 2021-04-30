@@ -99,6 +99,47 @@ class SancusNode(Node):
         return sm_id, symtab_file
 
 
+    async def attest(self, module):
+        assert module.node is self
+        assert encryption in module.get_supported_encryption()
+
+        module_id, module_key = await asyncio.gather(module.id, module.key)
+
+        challenge = tools.generate_key(16)
+
+        # The payload format is [sm_id, entry_id, 16 bit nonce, index, wrapped(key), tag]
+        # where the tag includes the nonce and the index.
+        payload =       tools.pack_int16(module_id)                     + \
+                        tools.pack_int16(ReactiveEntrypoint.Attest)     + \
+                        tools.pack_int16(len(challenge))                + \
+                        challenge
+
+        command = CommandMessage(ReactiveCommand.Call,
+                                Message(payload),
+                                self.ip_address,
+                                self.reactive_port)
+
+        res = await self._send_reactive_command(
+                command,
+                log='Attesting {}'.format(module.name)
+                )
+
+        # The result format is [tag] where the tag is the challenge's MAC
+        res_code = res.message.payload[:2]
+        res_code_enum = SetKeyResultCode(tools.unpack_int16(res_code))
+        if res_code_enum != SetKeyResultCode.Ok:
+            raise Error("Received result code {}".format(str(res_code_enum)))
+
+        challenge_response = res.message.payload[2:]
+        expected_tag = await encryption.SPONGENT.mac(module_key, challenge)
+
+        if challenge_response != expected_tag:
+            raise Error('Attestation of {} failed'.format(module.name))
+
+        logging.info("Attestation of {} succeeded".format(module.name))
+        module.attested = True
+
+
     async def set_key(self, module, conn_id, conn_io, encryption, key):
         assert module.node is self
         assert encryption in module.get_supported_encryption()
