@@ -9,6 +9,7 @@ from reactivenet import *
 
 from .base import Node
 from .. import tools
+from ..crypto import Encryption
 from ..dumpers import *
 from ..loaders import *
 
@@ -101,7 +102,6 @@ class SancusNode(Node):
 
     async def attest(self, module):
         assert module.node is self
-        assert encryption in module.get_supported_encryption()
 
         module_id, module_key = await asyncio.gather(module.id, module.key)
 
@@ -131,7 +131,7 @@ class SancusNode(Node):
             raise Error("Received result code {}".format(str(res_code_enum)))
 
         challenge_response = res.message.payload[2:]
-        expected_tag = await encryption.SPONGENT.mac(module_key, challenge)
+        expected_tag = await Encryption.SPONGENT.mac(module_key, challenge)
 
         if challenge_response != expected_tag:
             raise Error('Attestation of {} failed'.format(module.name))
