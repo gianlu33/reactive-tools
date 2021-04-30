@@ -125,12 +125,7 @@ class SancusNode(Node):
                 )
 
         # The result format is [tag] where the tag is the challenge's MAC
-        res_code = res.message.payload[:2]
-        res_code_enum = SetKeyResultCode(tools.unpack_int16(res_code))
-        if res_code_enum != SetKeyResultCode.Ok:
-            raise Error("Received result code {}".format(str(res_code_enum)))
-
-        challenge_response = res.message.payload[2:]
+        challenge_response = res.message.payload
         expected_tag = await Encryption.SPONGENT.mac(module_key, challenge)
 
         if challenge_response != expected_tag:
