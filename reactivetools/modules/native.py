@@ -135,9 +135,11 @@ class NativeModule(Module):
 
     async def attest(self):
         data = {
+            "id": self.id,
             "name": self.name,
             "host": str(self.node.ip_address),
             "port": self.port,
+            "em_port": self.node.reactive_port,
             "key": list(await self.key)
         }
         data_file = tools.create_tmp(suffix=".json")

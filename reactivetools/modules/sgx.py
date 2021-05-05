@@ -173,9 +173,11 @@ class SGXModule(Module):
 
     async def attest(self):
         data = {
+            "id": self.id,
             "name": self.name,
             "host": str(self.node.ip_address),
             "port": self.port,
+            "em_port": self.node.reactive_port,
             "aesm_client_port": self.node.aesm_port,
             "sigstruct": await self.sig
         }
@@ -185,7 +187,6 @@ class SGXModule(Module):
 
         # TODO include also settings?
 
-        # TODO args
         args = "--config {} --request attest-sgx --data {}".format(
                     self.manager.config, data_file).split()
         out, _ = await tools.run_async_output(glob.ATTMAN_CLI, *args)
