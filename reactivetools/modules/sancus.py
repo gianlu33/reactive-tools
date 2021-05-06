@@ -10,6 +10,7 @@ from elftools.elf import elffile
 from .base import Module
 from ..nodes import SancusNode
 from .. import tools
+from .. import glob
 from ..crypto import Encryption
 from ..dumpers import *
 from ..loaders import *
