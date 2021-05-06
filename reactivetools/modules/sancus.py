@@ -3,6 +3,7 @@ import asyncio
 import binascii
 from enum import Enum
 from collections import namedtuple
+import json
 
 from elftools.elf import elffile
 
