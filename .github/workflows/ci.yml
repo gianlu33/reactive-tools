@@ -21,7 +21,7 @@ jobs:
     -
       name: Build
       id: build
-      uses: gianlu33/Publish-Docker-Github-Action@master
+      uses: gianlu33/Publish-Docker-Github-Action@main
       with:
         name: ${{ env.REPO }}
         username: ${{ secrets.DOCKERHUB_USERNAME }}
