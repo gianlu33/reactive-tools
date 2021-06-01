@@ -5,53 +5,27 @@ on:
   workflow_dispatch: # Allow manual triggering
 
 env:
-  CI_REPO: gianlu33/reactive-tools-ci:fosdem
   REPO: gianlu33/reactive-tools:fosdem
 
 jobs:
-  build:
+  build-test-publish:
     runs-on: ubuntu-latest
     steps:
     -
-      name: login
+      name: Login
       run: docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
     -
-      name: pull
+      name: Pull
       run: git clone --branch fosdem-21 https://github.com/gianlu33/reactive-tools.git
     -
-      name: build
-      run: cd reactive-tools && docker build -t ${{ env.CI_REPO }} .
+      name: Build
+      run: cd reactive-tools && docker build -t ${{ env.REPO }} .
     -
-      name: push
-      run: docker push ${{ env.CI_REPO }}
-
-  test-native:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
+      name: Test
+      run: |
+        docker run --rm --network=host --detach -e EM_PORT=5000 -e EM_SGX=false gianlu33/reactive-event-manager:latest
+        git clone https://github.com/gianlu33/authentic-execution.git
+        docker run --rm --network=host -v $(pwd)/authentic-execution:/usr/src/app/ ${{ env.REPO }} reactive-tools --verbose deploy --workspace demo native.json
     -
-      name: pull Authentic Execution repo
-      run: git clone https://github.com/gianlu33/authentic-execution.git
-    -
-      name: run EM
-      run: docker run --rm --network=host --detach -e EM_PORT=5000 -e EM_SGX=false gianlu33/reactive-event-manager:latest
-    -
-      name: deploy demo
-      run: docker run --rm --network=host -v $(pwd)/authentic-execution:/usr/src/app/ ${{ env.CI_REPO }} reactive-tools --verbose deploy --workspace demo native.json
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: test-native
-    steps:
-    -
-      name: login
-      run: docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-    -
-      name: pull
-      run: docker pull ${{ env.CI_REPO }}
-    -
-      name: tag
-      run: docker tag ${{ env.CI_REPO }} ${{ env.REPO }}
-    -
-      name: push
+      name: Push
       run: docker push ${{ env.REPO }}
