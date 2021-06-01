@@ -26,4 +26,4 @@ jobs:
         tag_names: true
     -
       name: Image tag and digest
-      run: echo Tag: ${{ steps.docker_build.outputs.tag }} Digest: ${{ steps.docker_build.outputs.digest }}
+      run: echo "Tag: ${{ steps.docker_build.outputs.tag }} Digest: ${{ steps.docker_build.outputs.digest }}"
