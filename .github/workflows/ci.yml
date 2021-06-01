@@ -39,5 +39,7 @@ jobs:
         docker run --rm --network=host -v $(pwd)/authentic-execution:/usr/src/app/ ${{ env.REPO }}:${{ TAG }} reactive-tools --verbose deploy --workspace demo native.json
     -
       name: Push
+      env:
+        TAG: ${{ steps.build.outputs.tag != '' && steps.build.outputs.tag || steps.build.outputs.digest }}
       if: ${{ github.event_name != 'pull_request' }}
       run: docker push ${{ env.REPO }}:${{ TAG }}
